@@ -10,14 +10,17 @@ import {
   MANUFACTURERS,
 } from "./stock-car-data"
 import { RaceSimulator } from "./race-simulation"
+import { QualifyingSimulator } from "./qualifying-simulation"
 import { HistoricalEvolutionManager, type HistoricalEvent } from "./historical-evolution"
 
 export class SeasonManager {
   private raceSimulator: RaceSimulator
+  private qualifyingSimulator: QualifyingSimulator
   private evolutionManager: HistoricalEvolutionManager
 
   constructor() {
     this.raceSimulator = new RaceSimulator()
+    this.qualifyingSimulator = new QualifyingSimulator()
     this.evolutionManager = new HistoricalEvolutionManager()
   }
 
@@ -44,16 +47,16 @@ export class SeasonManager {
     const races: Race[] = []
     const startDate = new Date(year, 2, 15) // Start in March
 
-    const selectedTracks = TRACKS.slice(0, 12) // Take first 12 tracks
+    const selectedTracks = TRACKS.slice(0, 12) // 12 race weekends
 
     selectedTracks.forEach((track, index) => {
       const raceDate = new Date(startDate)
-      raceDate.setDate(startDate.getDate() + index * 21) // Race every 3 weeks
+      raceDate.setDate(startDate.getDate() + index * 21) // Race weekend every 3 weeks
 
-      // Main Race
+      // Saturday - Qualifying + Race 1
       races.push({
-        id: `${year}-${track.name.toLowerCase().replace(/\s+/g, "-")}-main`,
-        name: `GP ${track.location} - Corrida Principal`,
+        id: `${year}-${track.name.toLowerCase().replace(/\s+/g, "-")}-race1`,
+        name: `GP ${track.location} - Corrida 1`,
         track: track.name,
         location: track.location,
         state: track.state,
@@ -63,26 +66,26 @@ export class SeasonManager {
         distance: track.distance,
         completed: false,
         weather: this.generateWeather(),
-        raceType: "main",
+        raceType: "main"
       })
 
-      // Inverted Grid Race (same day, later)
-      const invertedRaceDate = new Date(raceDate)
-      invertedRaceDate.setHours(raceDate.getHours() + 3) // 3 hours later
+      // Sunday - Race 2 (Inverted Grid)
+      const sundayDate = new Date(raceDate)
+      sundayDate.setDate(raceDate.getDate() + 1) // Next day (Sunday)
 
       races.push({
-        id: `${year}-${track.name.toLowerCase().replace(/\s+/g, "-")}-inverted`,
-        name: `GP ${track.location} - Corrida do Grid Invertido`,
+        id: `${year}-${track.name.toLowerCase().replace(/\s+/g, "-")}-race2`,
+        name: `GP ${track.location} - Corrida 2`,
         track: track.name,
         location: track.location,
         state: track.state,
         flag: track.flag,
-        date: invertedRaceDate,
+        date: sundayDate,
         laps: Math.floor(track.laps * 0.8), // Shorter race
         distance: track.distance * 0.8,
         completed: false,
         weather: this.generateWeather(),
-        raceType: "inverted",
+        raceType: "inverted"
       })
     })
 
@@ -100,13 +103,44 @@ export class SeasonManager {
     const nextRace = season.races.find((race) => !race.completed)
     if (!nextRace) return season
 
-    // Simulate the race
-    const results = this.raceSimulator.simulateRace(nextRace)
-    nextRace.results = results
+    if (nextRace.raceType === "main") {
+      // First, simulate qualifying
+      const qualifying = this.qualifyingSimulator.simulateQualifying(nextRace.id, nextRace.weather)
+      nextRace.qualifying = qualifying
+      
+      // Then simulate Race 1 with qualifying grid
+      const raceSimulation = this.raceSimulator.simulateRace(nextRace, qualifying.finalGrid, "main")
+      nextRace.results = raceSimulation.results
+      
+      // Store Race 1 results for Race 2 grid
+      const race2 = season.races.find(r => r.id === nextRace.id.replace('-race1', '-race2'))
+      if (race2) {
+        race2.race1Results = raceSimulation.results
+      }
+    } else {
+      // Race 2 - use inverted grid from Race 1
+      const race1 = season.races.find(r => r.id === nextRace.id.replace('-race2', '-race1'))
+      if (race1 && race1.results) {
+        // Create grid from Race 1 results
+        const race1Grid = race1.results.filter(r => !r.dnf).map((result, index) => ({
+          position: result.position,
+          driverId: result.driverId,
+          lapTime: 70000, // Placeholder
+          gap: 0,
+          eliminated: false
+        }))
+        
+        const raceSimulation = this.raceSimulator.simulateRace(nextRace, race1Grid, "inverted")
+        nextRace.results = raceSimulation.results
+      }
+    }
+    
     nextRace.completed = true
 
     // Update driver stats
-    this.raceSimulator.updateDriverStats(results)
+    if (nextRace.results) {
+      this.raceSimulator.updateDriverStats(nextRace.results)
+    }
 
     // Update standings
     this.updateStandings(season)

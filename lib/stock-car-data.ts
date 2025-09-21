@@ -70,6 +70,8 @@ export interface Race {
   results?: RaceResult[]
   weather: "sunny" | "cloudy" | "rainy"
   raceType?: "main" | "inverted" // Added race type
+  qualifying?: any // Qualifying results
+  race1Results?: RaceResult[] // Results from race 1 (for race 2 grid)
 }
 
 export interface RaceResult {

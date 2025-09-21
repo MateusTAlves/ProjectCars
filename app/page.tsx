@@ -18,7 +18,6 @@ import { EvolutionNews } from "@/components/evolution-news"
 import { FunctionalCalendar } from "@/components/functional-calendar"
 import { ManufacturerShowcase } from "@/components/manufacturer-showcase"
 import { TeamSelection } from "@/components/team-selection"
-import { LapByLapSimulation } from "@/components/lap-by-lap-simulation"
 import { CarUpgrades } from "@/components/car-upgrades"
 import { EvolutionTest } from "@/components/evolution-test"
 import { TEAMS, DRIVERS } from "@/lib/stock-car-data"
@@ -33,7 +32,6 @@ export default function StockCarManager() {
   const [gameStarted, setGameStarted] = useState(false)
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null)
   const [showTeamSelection, setShowTeamSelection] = useState(false)
-  const [activeRaceSimulation, setActiveRaceSimulation] = useState<any>(null)
 
   useEffect(() => {
     // Initialize the game with the first season
@@ -72,7 +70,6 @@ export default function StockCarManager() {
       }
 
       setCurrentSeason(updatedSeason)
-      setActiveRaceSimulation(null)
     }
   }
 
@@ -88,10 +85,6 @@ export default function StockCarManager() {
     }
   }
 
-  const simulateRace = (race: any) => {
-    setActiveRaceSimulation(race)
-  }
-
   const simulateFullSeason = () => {
     if (currentSeason && !currentSeason.completed) {
       const simulatedSeason = seasonManager.simulateFullSeason({ ...currentSeason })
@@ -105,31 +98,6 @@ export default function StockCarManager() {
 
   if (!gameStarted) {
     return <WelcomeScreen onStart={startGame} />
-  }
-
-  if (activeRaceSimulation) {
-    return (
-      <div className="min-h-screen bg-background">
-        <header className="border-b bg-card">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Button variant="outline" onClick={() => setActiveRaceSimulation(null)}>
-                  ← Voltar
-                </Button>
-                <div>
-                  <h1 className="text-xl font-bold">Simulação ao Vivo</h1>
-                  <p className="text-sm text-muted-foreground">{activeRaceSimulation.name}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-        <main className="container mx-auto px-4 py-6">
-          <LapByLapSimulation race={activeRaceSimulation} onRaceComplete={handleRaceComplete} />
-        </main>
-      </div>
-    )
   }
 
   if (!currentSeason) {
@@ -252,7 +220,6 @@ export default function StockCarManager() {
             <FunctionalCalendar
               season={currentSeason}
               onRaceComplete={handleRaceComplete}
-              onSimulateRace={simulateRace}
             />
           </TabsContent>
 
@@ -291,23 +258,40 @@ export default function StockCarManager() {
 
 function DashboardOverview({
   season,
-  onSimulateRace,
   onStartNewSeason,
   onSimulateFullSeason,
   teamColor,
 }: {
   season: Season
-  onSimulateRace: (race: any) => void
   onStartNewSeason: () => void
   onSimulateFullSeason: () => void
   teamColor: string
 }) {
-  const completedRaces = season.races.filter((r) => r.completed).length
-  const totalRaces = season.races.length
-  const progress = (completedRaces / totalRaces) * 100
+  const completedWeekends = Math.floor(season.races.filter((r) => r.completed).length / 2)
+  const totalWeekends = season.races.length / 2
+  const progress = (completedWeekends / totalWeekends) * 100
 
-  const nextRace = season.races.find((r) => !r.completed)
-  const lastRace = season.races.filter((r) => r.completed).pop()
+  const nextWeekend = (() => {
+    for (let i = 0; i < season.races.length; i += 2) {
+      const race1 = season.races[i]
+      const race2 = season.races[i + 1]
+      if (race1 && race2 && (!race1.completed || !race2.completed)) {
+        return { race1, race2 }
+      }
+    }
+    return null
+  })()
+  
+  const lastCompletedRaces = (() => {
+    for (let i = season.races.length - 2; i >= 0; i -= 2) {
+      const race1 = season.races[i]
+      const race2 = season.races[i + 1]
+      if (race1?.completed && race2?.completed) {
+        return { race1, race2 }
+      }
+    }
+    return null
+  })()
 
   return (
     <div className="space-y-6">
@@ -329,8 +313,8 @@ function DashboardOverview({
             <div className="flex items-center gap-3">
               <Trophy className="h-6 w-6 text-green-500" />
               <div>
-                <div className="text-2xl font-bold">{completedRaces}</div>
-                <div className="text-sm text-muted-foreground">Concluídas</div>
+                <div className="text-2xl font-bold">{completedWeekends}</div>
+                <div className="text-sm text-muted-foreground">Fins de Semana</div>
               </div>
             </div>
           </CardContent>
@@ -353,7 +337,7 @@ function DashboardOverview({
             <div className="flex items-center gap-3">
               <Users className="h-6 w-6 text-purple-500" />
               <div>
-                <div className="text-2xl font-bold">{totalRaces - completedRaces}</div>
+                <div className="text-2xl font-bold">{totalWeekends - completedWeekends}</div>
                 <div className="text-sm text-muted-foreground">Restantes</div>
               </div>
             </div>
@@ -361,7 +345,7 @@ function DashboardOverview({
         </Card>
       </div>
 
-      {!season.completed && completedRaces < totalRaces && (
+      {!season.completed && completedWeekends < totalWeekends && (
         <Card className="border-2 border-dashed" style={{ borderColor: teamColor + "40" }}>
           <CardContent className="pt-6">
             <div className="text-center py-6">
@@ -371,7 +355,7 @@ function DashboardOverview({
               </div>
               <h3 className="text-xl font-bold mb-3">Simular Temporada Completa</h3>
               <p className="text-muted-foreground mb-6 text-sm max-w-md mx-auto">
-                Execute todas as {totalRaces - completedRaces} corridas restantes automaticamente e veja os resultados
+                Execute todos os {totalWeekends - completedWeekends} fins de semana restantes automaticamente e veja os resultados
                 finais da temporada {season.year}.
               </p>
               <Button
@@ -389,85 +373,74 @@ function DashboardOverview({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {nextRace && (
+        {nextWeekend && (
           <Card className="shadow-sm">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Calendar className="h-5 w-5" style={{ color: teamColor }} />
-                Próxima Corrida
+                Próximo Fim de Semana
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
-                  <div className="text-3xl">{nextRace.flag || "🏁"}</div>
+                  <div className="text-3xl">{nextWeekend.race1.flag || "🏁"}</div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg">{nextRace.name}</h3>
+                    <h3 className="font-semibold text-lg">GP {nextWeekend.race1.location}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {nextRace.track} • {nextRace.location}
+                      {nextWeekend.race1.track} • {nextWeekend.race1.state}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium">
-                    {new Date(nextRace.date).toLocaleDateString("pt-BR", {
+                    {new Date(nextWeekend.race1.date).toLocaleDateString("pt-BR", {
                       day: "numeric",
                       month: "long",
                     })}
                   </span>
-                  <Badge variant="outline">{nextRace.laps} voltas</Badge>
+                  <Badge variant="outline">2 CORRIDAS</Badge>
                 </div>
-                <Button
-                  className="w-full"
-                  onClick={() => onSimulateRace(nextRace)}
-                  style={{ backgroundColor: teamColor }}
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Simular Corrida
-                </Button>
+                <div className="text-center text-sm text-muted-foreground">
+                  Vá para o Calendário para simular
+                </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {lastRace && lastRace.results && (
+        {lastCompletedRaces && (
           <Card className="shadow-sm">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Trophy className="h-5 w-5" style={{ color: teamColor }} />
-                Última Corrida
+                Último Fim de Semana
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
-                  <div className="text-3xl">{lastRace.flag || "🏁"}</div>
+                  <div className="text-3xl">{lastCompletedRaces.race1.flag || "🏁"}</div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg">{lastRace.name}</h3>
+                    <h3 className="font-semibold text-lg">GP {lastCompletedRaces.race1.location}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {lastRace.track} • {lastRace.location}
+                      {lastCompletedRaces.race1.track} • {lastCompletedRaces.race1.state}
                     </p>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  {lastRace.results.slice(0, 3).map((result, index) => {
-                    const driver = DRIVERS.find((d) => d.id === result.driverId)
-                    const positions = ["🥇", "🥈", "🥉"]
-                    return (
-                      <div
-                        key={result.driverId}
-                        className="flex items-center justify-between p-2 rounded-lg bg-muted/30"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg">{positions[index]}</span>
-                          <span className="font-medium">{driver?.name}</span>
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          {result.points} pts
-                        </Badge>
-                      </div>
-                    )
-                  })}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div className="font-semibold text-sm text-green-800">CORRIDA 1</div>
+                    <div className="text-xs text-green-600">
+                      {DRIVERS.find(d => d.id === lastCompletedRaces.race1.results?.[0]?.driverId)?.name.split(' ')[0]}
+                    </div>
+                  </div>
+                  <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="font-semibold text-sm text-blue-800">CORRIDA 2</div>
+                    <div className="text-xs text-blue-600">
+                      {DRIVERS.find(d => d.id === lastCompletedRaces.race2.results?.[0]?.driverId)?.name.split(' ')[0]}
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -481,7 +454,7 @@ function DashboardOverview({
                 <Trophy className="h-16 w-16 mx-auto mb-4" style={{ color: teamColor }} />
                 <h3 className="text-2xl font-bold mb-3">Temporada {season.year} Completa!</h3>
                 <p className="text-muted-foreground mb-6 text-base max-w-md mx-auto">
-                  Parabéns! Você completou com sucesso a temporada {season.year} do Stock Car Brasil.
+                  Todos os fins de semana da temporada {season.year} foram concluídos.
                 </p>
                 <Button
                   size="lg"

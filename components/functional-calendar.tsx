@@ -6,34 +6,48 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, ChevronLeft, ChevronRight, Play, CheckCircle, Lock, Flag } from "lucide-react"
 import type { Race, Season } from "@/lib/stock-car-data"
-import { RaceSimulator } from "@/lib/race-simulation"
+import { RaceWeekend } from "./race-weekend"
 
 interface FunctionalCalendarProps {
   season: Season
   onRaceComplete: (race: Race, results: any[]) => void
-  onSimulateRace: (race: Race) => void
 }
 
-export function FunctionalCalendar({ season, onRaceComplete, onSimulateRace }: FunctionalCalendarProps) {
+export function FunctionalCalendar({ season, onRaceComplete }: FunctionalCalendarProps) {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
-  const [simulator] = useState(() => new RaceSimulator())
+  const [activeWeekend, setActiveWeekend] = useState<{ race1: Race, race2: Race } | null>(null)
 
-  const getNextAvailableRace = () => {
-    return season.races.find((race) => !race.completed)
+  const getNextAvailableWeekend = () => {
+    // Find the first incomplete race weekend (both races must be incomplete)
+    for (let i = 0; i < season.races.length; i += 2) {
+      const race1 = season.races[i]
+      const race2 = season.races[i + 1]
+      if (race1 && race2 && (!race1.completed || !race2.completed)) {
+        return { race1, race2 }
+      }
+    }
+    return null
   }
 
-  const canSimulateRace = (race: Race) => {
-    const nextRace = getNextAvailableRace()
-    return nextRace?.id === race.id
+  const canSimulateWeekend = (race1: Race, race2: Race) => {
+    const nextWeekend = getNextAvailableWeekend()
+    return nextWeekend?.race1.id === race1.id
   }
 
-  const simulateRace = (race: Race) => {
-    if (!canSimulateRace(race)) {
-      alert("Você deve simular as corridas em ordem sequencial!")
+  const simulateWeekend = (race1: Race, race2: Race) => {
+    if (!canSimulateWeekend(race1, race2)) {
+      alert("Você deve simular os fins de semana em ordem sequencial!")
       return
     }
 
-    onSimulateRace(race)
+    setActiveWeekend({ race1, race2 })
+  }
+
+  const handleWeekendComplete = (completedRace1: Race, completedRace2: Race) => {
+    // Update both races in the season
+    onRaceComplete(completedRace1, completedRace1.results || [])
+    onRaceComplete(completedRace2, completedRace2.results || [])
+    setActiveWeekend(null)
   }
 
   const months = [
@@ -72,6 +86,10 @@ export function FunctionalCalendar({ season, onRaceComplete, onSimulateRace }: F
     },
     {} as Record<string, Race[]>,
   )
+
+  if (activeWeekend) {
+    return <RaceWeekend {...activeWeekend} onWeekendComplete={handleWeekendComplete} onBack={() => setActiveWeekend(null)} />
+  }
 
   return (
     <div className="space-y-6">
@@ -115,14 +133,14 @@ export function FunctionalCalendar({ season, onRaceComplete, onSimulateRace }: F
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Progresso da Temporada</span>
               <span className="text-sm text-muted-foreground">
-                {season.races.filter((r) => r.completed).length} de {season.races.length} corridas
+                {Math.floor(season.races.filter((r) => r.completed).length / 2)} de {season.races.length / 2} fins de semana
               </span>
             </div>
             <div className="w-full bg-secondary rounded-full h-2">
               <div
                 className="bg-primary h-2 rounded-full transition-all duration-300"
                 style={{
-                  width: `${(season.races.filter((r) => r.completed).length / season.races.length) * 100}%`,
+                  width: `${(Math.floor(season.races.filter((r) => r.completed).length / 2) / (season.races.length / 2)) * 100}%`,
                 }}
               />
             </div>
@@ -137,31 +155,36 @@ export function FunctionalCalendar({ season, onRaceComplete, onSimulateRace }: F
             <CardContent className="pt-6">
               <div className="text-center py-8">
                 <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">Nenhuma corrida programada para {months[selectedMonth]}</p>
+                <p className="text-muted-foreground">Nenhum fim de semana programado para {months[selectedMonth]}</p>
               </div>
             </CardContent>
           </Card>
         ) : (
           Object.entries(raceWeekends).map(([track, races]) => {
-            const mainRace = races.find((r) => r.raceType === "main") || races[0]
-            const invertedRace = races.find((r) => r.raceType === "inverted") || races[1]
+            const race1 = races.find((r) => r.raceType === "main") || races[0]
+            const race2 = races.find((r) => r.raceType === "inverted") || races[1]
+            
+            if (!race1 || !race2) return null
+            
+            const weekendComplete = race1.completed && race2.completed
+            const canSimulate = canSimulateWeekend(race1, race2)
 
             return (
               <Card key={track} className="overflow-hidden">
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
-                    <div className="text-3xl">{mainRace.flag || "🏁"}</div>
+                    <div className="text-3xl">{race1.flag || "🏁"}</div>
                     <div className="flex-1">
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <Flag className="h-5 w-5" />
-                        GP {mainRace.location}
+                        GP {race1.location}
                       </CardTitle>
                       <p className="text-sm text-muted-foreground">
-                        {mainRace.track} • {mainRace.state}
+                        {race1.track} • {race1.state}
                       </p>
                     </div>
                     <Badge variant="outline" className="text-xs">
-                      {new Date(mainRace.date).toLocaleDateString("pt-BR", {
+                      {new Date(race1.date).toLocaleDateString("pt-BR", {
                         day: "numeric",
                         month: "short",
                       })}
@@ -169,80 +192,72 @@ export function FunctionalCalendar({ season, onRaceComplete, onSimulateRace }: F
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {races.map((race) => {
-                      const isNext = canSimulateRace(race)
-                      const isCompleted = race.completed
-                      const isLocked = !isNext && !isCompleted
-
-                      return (
-                        <div
-                          key={race.id}
-                          className={`p-3 rounded-lg border ${isNext ? "border-primary bg-primary/5" : "border-border"}`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                {isCompleted && <CheckCircle className="h-4 w-4 text-green-500" />}
-                                {isNext && <Play className="h-4 w-4 text-primary animate-pulse" />}
-                                {isLocked && <Lock className="h-4 w-4 text-muted-foreground" />}
-                                <h4 className="font-medium text-sm">{race.name}</h4>
-                                <Badge variant={race.raceType === "main" ? "default" : "secondary"} className="text-xs">
-                                  {race.raceType === "main" ? "Principal" : "Grid Invertido"}
-                                </Badge>
-                              </div>
-
-                              <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
-                                <span>{race.laps} voltas</span>
-                                <span>{race.distance.toFixed(0)} km</span>
-                                <span>
-                                  {new Date(race.date).toLocaleTimeString("pt-BR", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </span>
-                              </div>
-
-                              {/* Race Results Preview */}
-                              {isCompleted && race.results && (
-                                <div className="mt-2 flex gap-2">
-                                  {race.results.slice(0, 3).map((result, idx) => {
-                                    const positions = ["🥇", "🥈", "🥉"]
-                                    return (
-                                      <div key={result.driverId} className="flex items-center gap-1">
-                                        <span className="text-xs">{positions[idx]}</span>
-                                        <Badge variant="outline" className="text-xs px-1">
-                                          {result.points}pts
-                                        </Badge>
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="ml-3">
-                              {isNext && (
-                                <Button size="sm" onClick={() => simulateRace(race)}>
-                                  <Play className="h-3 w-3 mr-1" />
-                                  Simular
-                                </Button>
-                              )}
-                              {isCompleted && (
-                                <Badge variant="outline" className="text-xs">
-                                  Concluída
-                                </Badge>
-                              )}
-                              {isLocked && (
-                                <Badge variant="secondary" className="text-xs">
-                                  Bloqueada
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
+                  <div className="space-y-4">
+                    {/* Weekend Overview */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className={`p-3 rounded-lg border-2 ${race1.completed ? 'border-green-500 bg-green-50' : canSimulate ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          {race1.completed ? <CheckCircle className="h-4 w-4 text-green-500" /> : 
+                           canSimulate ? <Play className="h-4 w-4 text-blue-500 animate-pulse" /> :
+                           <Lock className="h-4 w-4 text-gray-400" />}
+                          <span className="font-semibold text-sm">CORRIDA 1</span>
                         </div>
-                      )
-                    })}
+                        <div className="text-xs text-muted-foreground">
+                          {race1.laps} voltas • {race1.distance.toFixed(0)}km
+                        </div>
+                        {race1.completed && race1.results && (
+                          <div className="mt-2">
+                            <Badge variant="outline" className="text-xs">
+                              Vencedor: {DRIVERS.find(d => d.id === race1.results![0]?.driverId)?.name.split(' ')[0]}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className={`p-3 rounded-lg border-2 ${race2.completed ? 'border-green-500 bg-green-50' : race1.completed ? 'border-orange-500 bg-orange-50' : 'border-gray-300'}`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          {race2.completed ? <CheckCircle className="h-4 w-4 text-green-500" /> : 
+                           race1.completed ? <Play className="h-4 w-4 text-orange-500 animate-pulse" /> :
+                           <Lock className="h-4 w-4 text-gray-400" />}
+                          <span className="font-semibold text-sm">CORRIDA 2</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {race2.laps} voltas • Grid Invertido
+                        </div>
+                        {race2.completed && race2.results && (
+                          <div className="mt-2">
+                            <Badge variant="outline" className="text-xs">
+                              Vencedor: {DRIVERS.find(d => d.id === race2.results![0]?.driverId)?.name.split(' ')[0]}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <div className="text-center">
+                      {canSimulate && (
+                        <Button 
+                          onClick={() => simulateWeekend(race1, race2)}
+                          className="bg-black hover:bg-gray-800 text-white border-2 border-black"
+                        >
+                          <Flag className="h-4 w-4 mr-2" />
+                          SIMULAR FIM DE SEMANA
+                        </Button>
+                      )}
+                      {weekendComplete && (
+                        <Badge variant="outline" className="text-sm px-4 py-2 border-2 border-green-500 text-green-600">
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          FIM DE SEMANA COMPLETO
+                        </Badge>
+                      )}
+                      {!canSimulate && !weekendComplete && (
+                        <Badge variant="secondary" className="text-sm px-4 py-2">
+                          <Lock className="h-4 w-4 mr-1" />
+                          AGUARDANDO
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
