@@ -209,7 +209,6 @@ export default function StockCarManager() {
           <TabsContent value="dashboard">
             <DashboardOverview
               season={currentSeason}
-              onSimulateRace={simulateRace}
               onStartNewSeason={startNewSeason}
               onSimulateFullSeason={simulateFullSeason}
               teamColor={teamPrimaryColor}
