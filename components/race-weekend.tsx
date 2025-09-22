@@ -55,6 +55,15 @@ export function RaceWeekend({ race1, race2, onWeekendComplete, onBack }: RaceWee
     return "upcoming"
   }
 
+  const getWeatherIcon = (weather: string) => {
+    switch (weather) {
+      case "sunny": return "☀️"
+      case "cloudy": return "☁️"
+      case "rainy": return "🌧️"
+      default: return "☀️"
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -90,6 +99,10 @@ export function RaceWeekend({ race1, race2, onWeekendComplete, onBack }: RaceWee
                 <div className="flex items-center gap-1">
                   <Gauge className="h-4 w-4" />
                   <span>{race1.laps} voltas</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  {getWeatherIcon(race1.weather)}
+                  <span className="capitalize">{race1.weather}</span>
                 </div>
               </div>
             </div>

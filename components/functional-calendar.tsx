@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, ChevronLeft, ChevronRight, Play, CheckCircle, Lock, Flag } from "lucide-react"
+import { Calendar, ChevronLeft, ChevronRight, Play, CheckCircle, Lock, Flag, Sun, Cloud, CloudRain } from "lucide-react"
 import type { Race, Season } from "@/lib/stock-car-data"
 import { RaceWeekend } from "./race-weekend"
 
@@ -32,6 +32,15 @@ export function FunctionalCalendar({ season, onRaceComplete }: FunctionalCalenda
   const canSimulateWeekend = (race1: Race, race2: Race) => {
     const nextWeekend = getNextAvailableWeekend()
     return nextWeekend?.race1.id === race1.id
+  }
+
+  const getWeatherIcon = (weather: string) => {
+    switch (weather) {
+      case "sunny": return <Sun className="h-4 w-4 text-yellow-500" />
+      case "cloudy": return <Cloud className="h-4 w-4 text-gray-500" />
+      case "rainy": return <CloudRain className="h-4 w-4 text-blue-500" />
+      default: return <Sun className="h-4 w-4 text-yellow-500" />
+    }
   }
 
   const simulateWeekend = (race1: Race, race2: Race) => {
@@ -210,6 +219,9 @@ export function FunctionalCalendar({ season, onRaceComplete }: FunctionalCalenda
                             <Badge variant="outline" className="text-xs">
                               Vencedor: {DRIVERS.find(d => d.id === race1.results![0]?.driverId)?.name.split(' ')[0]}
                             </Badge>
+                            <div className="text-xs text-muted-foreground mt-1 font-mono">
+                              Tempo: 1:{(20 + Math.random() * 10).toFixed(0)}:{Math.floor(Math.random() * 60).toString().padStart(2, '0')}.{Math.floor(Math.random() * 1000).toString().padStart(3, '0')}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -229,6 +241,9 @@ export function FunctionalCalendar({ season, onRaceComplete }: FunctionalCalenda
                             <Badge variant="outline" className="text-xs">
                               Vencedor: {DRIVERS.find(d => d.id === race2.results![0]?.driverId)?.name.split(' ')[0]}
                             </Badge>
+                            <div className="text-xs text-muted-foreground mt-1 font-mono">
+                              Tempo: 1:{(15 + Math.random() * 8).toFixed(0)}:{Math.floor(Math.random() * 60).toString().padStart(2, '0')}.{Math.floor(Math.random() * 1000).toString().padStart(3, '0')}
+                            </div>
                           </div>
                         )}
                       </div>
