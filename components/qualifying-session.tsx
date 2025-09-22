@@ -181,15 +181,15 @@ export function QualifyingSessionComponent({ raceId, weather, onQualifyingComple
 
       {/* Qualifying Results */}
       {qualifying && (
-        <Card className="border-2 border-black">
-          <CardHeader className="bg-gradient-to-r from-black to-gray-800 text-white">
+        <Card className="border-4 border-black shadow-2xl">
+          <CardHeader className="bg-gradient-to-r from-black via-gray-900 to-black text-white">
             <CardTitle className="text-2xl font-bold flex items-center gap-3">
               <Trophy className="h-8 w-8 text-yellow-400" />
               GRID DE LARGADA OFICIAL
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="space-y-3">
+            <div className="space-y-2">
               {qualifying.finalGrid.map((result, index) => {
                 const driver = DRIVERS.find(d => d.id === result.driverId)!
                 const team = TEAMS.find(t => t.id === driver.teamId)!
@@ -198,15 +198,15 @@ export function QualifyingSessionComponent({ raceId, weather, onQualifyingComple
                 return (
                   <div 
                     key={result.driverId}
-                    className={`flex items-center gap-4 p-4 rounded-lg border-2 transition-all hover:shadow-lg ${
+                    className={`flex items-center gap-4 p-3 rounded-lg border-2 transition-all hover:shadow-lg ${
                       index === 0 ? 'border-yellow-400 bg-yellow-50' :
                       index < 3 ? 'border-gray-400 bg-gray-50' :
                       index < 10 ? 'border-green-400 bg-green-50' :
                       'border-gray-200 bg-white'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold border-2 ${
+                    <div className="flex items-center gap-2">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold border-2 ${
                         index === 0 ? 'bg-yellow-400 text-black border-yellow-600' :
                         index < 3 ? 'bg-gray-400 text-white border-gray-600' :
                         index < 10 ? 'bg-green-400 text-white border-green-600' :
@@ -217,14 +217,14 @@ export function QualifyingSessionComponent({ raceId, weather, onQualifyingComple
                       
                       {index === 0 && (
                         <div className="flex flex-col items-center">
-                          <Trophy className="h-6 w-6 text-yellow-600" />
+                          <Trophy className="h-5 w-5 text-yellow-600" />
                           <span className="text-xs font-bold text-yellow-600">POLE</span>
                         </div>
                       )}
                     </div>
 
                     <div className="flex items-center gap-3 flex-1">
-                      <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-white border-2 border-black">
+                      <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-white border border-black">
                         <Image
                           src={team.logo || "/placeholder.svg"}
                           alt={`${team.name} logo`}
@@ -234,7 +234,7 @@ export function QualifyingSessionComponent({ raceId, weather, onQualifyingComple
                       </div>
                       
                       <div className="flex-1">
-                        <div className="font-bold text-lg">{driver.name}</div>
+                        <div className="font-bold">{driver.name}</div>
                         <div className="text-sm text-muted-foreground flex items-center gap-2">
                           <span>{team.name}</span>
                           <span>•</span>
@@ -244,7 +244,7 @@ export function QualifyingSessionComponent({ raceId, weather, onQualifyingComple
                     </div>
 
                     <div className="text-right">
-                      <div className="font-mono text-lg font-bold">
+                      <div className="font-mono text-sm font-bold">
                         {simulator.formatTime(result.lapTime)}
                       </div>
                       <div className="text-sm text-muted-foreground">
@@ -252,7 +252,7 @@ export function QualifyingSessionComponent({ raceId, weather, onQualifyingComple
                       </div>
                     </div>
 
-                    <div className="relative w-8 h-8 rounded overflow-hidden bg-white border">
+                    <div className="relative w-6 h-6 rounded overflow-hidden bg-white border">
                       <Image
                         src={manufacturer.logo || "/placeholder.svg"}
                         alt={`${manufacturer.name} logo`}

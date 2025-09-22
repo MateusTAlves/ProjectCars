@@ -714,7 +714,7 @@ export const TRACKS = [
     name: "Autódromo José Carlos Pace (Interlagos)",
     location: "São Paulo, SP",
     state: "SP",
-    flag: "🏴󠁢󠁲󠁳󠁰󠁿", // São Paulo flag
+    flag: "🏴󠁢󠁲󠁳󠁰󠁿",
     laps: 71,
     distance: 305.9,
   },
@@ -722,7 +722,7 @@ export const TRACKS = [
     name: "Autódromo Internacional de Cascavel",
     location: "Cascavel, PR",
     state: "PR",
-    flag: "🏴󠁢󠁲󠁰󠁲󠁿", // Paraná flag
+    flag: "🟨🟩🟦",
     laps: 60,
     distance: 240.0,
   },
@@ -730,7 +730,7 @@ export const TRACKS = [
     name: "Velopark",
     location: "Nova Santa Rita, RS",
     state: "RS",
-    flag: "🏴󠁢󠁲󠁲󠁳󠁿", // Rio Grande do Sul flag
+    flag: "🟩🟨🟥",
     laps: 45,
     distance: 180.0,
   },
@@ -738,7 +738,7 @@ export const TRACKS = [
     name: "Velocitta",
     location: "Mogi Guaçu, SP",
     state: "SP",
-    flag: "🏴󠁢󠁲󠁳󠁰󠁿", // São Paulo flag
+    flag: "🏴󠁢󠁲󠁳󠁰󠁿",
     laps: 55,
     distance: 220.0,
   },
@@ -746,7 +746,7 @@ export const TRACKS = [
     name: "Circuito dos Cristais",
     location: "Curvelo, MG",
     state: "MG",
-    flag: "🏴󠁢󠁲󠁭󠁧󠁿", // Minas Gerais flag
+    flag: "🔺⬜🔺",
     laps: 52,
     distance: 208.0,
   },
@@ -754,7 +754,7 @@ export const TRACKS = [
     name: "Autódromo Internacional Orlando Moura",
     location: "Campo Grande, MS",
     state: "MS",
-    flag: "🏴󠁢󠁲󠁭󠁳󠁿", // Mato Grosso do Sul flag
+    flag: "🟦🟨🟩",
     laps: 50,
     distance: 200.0,
   },
@@ -762,7 +762,7 @@ export const TRACKS = [
     name: "Autódromo Internacional Ayrton Senna",
     location: "Goiânia, GO",
     state: "GO",
-    flag: "🏴󠁢󠁲󠁧󠁯󠁿", // Goiás flag
+    flag: "🟩🟨🟦",
     laps: 48,
     distance: 192.0,
   },
@@ -770,7 +770,7 @@ export const TRACKS = [
     name: "Autódromo Internacional Nelson Piquet",
     location: "Brasília, DF",
     state: "DF",
-    flag: "🏴󠁢󠁲󠁤󠁦󠁿", // Distrito Federal flag
+    flag: "🟩🟨",
     laps: 58,
     distance: 232.0,
   },
@@ -778,7 +778,7 @@ export const TRACKS = [
     name: "Autódromo de Tarumã",
     location: "Viamão, RS",
     state: "RS",
-    flag: "🏴󠁢󠁲󠁲󠁳󠁿", // Rio Grande do Sul flag
+    flag: "🟩🟨🟥",
     laps: 65,
     distance: 195.0,
   },
@@ -786,7 +786,7 @@ export const TRACKS = [
     name: "Autódromo de Londrina",
     location: "Londrina, PR",
     state: "PR",
-    flag: "🏴󠁢󠁲󠁰󠁲󠁿", // Paraná flag
+    flag: "🟨🟩🟦",
     laps: 55,
     distance: 165.0,
   },
@@ -794,7 +794,7 @@ export const TRACKS = [
     name: "Autódromo Internacional de Curitiba",
     location: "Curitiba, PR",
     state: "PR",
-    flag: "🏴󠁢󠁲󠁰󠁲󠁿", // Paraná flag
+    flag: "🟨🟩🟦",
     laps: 62,
     distance: 186.0,
   },
@@ -802,7 +802,7 @@ export const TRACKS = [
     name: "Autódromo de Jacarepaguá",
     location: "Rio de Janeiro, RJ",
     state: "RJ",
-    flag: "🏴󠁢󠁲󠁲󠁪󠁿", // Rio de Janeiro flag
+    flag: "🔵⚪🔴",
     laps: 68,
     distance: 272.0,
   },

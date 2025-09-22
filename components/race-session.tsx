@@ -159,15 +159,15 @@ export function RaceSessionComponent({ race, startingGrid, raceType, onRaceCompl
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Current Positions */}
           <div className="lg:col-span-2">
-            <Card className="border-2 border-black">
-              <CardHeader className="bg-black text-white">
+            <Card className="border-4 border-black shadow-2xl">
+              <CardHeader className="bg-gradient-to-r from-black via-gray-900 to-black text-white">
                 <CardTitle className="flex items-center gap-2">
                   <Trophy className="h-6 w-6 text-yellow-400" />
                   POSIÇÕES AO VIVO
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="space-y-2 max-h-96 overflow-y-auto">
+                <div className="space-y-1 max-h-96 overflow-y-auto">
                   {simulation.results.map((result, index) => {
                     const driver = DRIVERS.find(d => d.id === result.driverId)!
                     const team = TEAMS.find(t => t.id === result.teamId)!
@@ -176,13 +176,13 @@ export function RaceSessionComponent({ race, startingGrid, raceType, onRaceCompl
                     return (
                       <div
                         key={result.driverId}
-                        className={`flex items-center gap-4 p-3 rounded-lg border-2 transition-all ${
+                        className={`flex items-center gap-3 p-2 rounded-lg border-2 transition-all hover:shadow-md ${
                           index === 0 ? 'border-yellow-400 bg-yellow-50' :
                           index < 3 ? 'border-gray-400 bg-gray-50' :
                           'border-gray-200 bg-white hover:bg-gray-50'
                         }`}
                       >
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold border-2 ${
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 ${
                           index === 0 ? 'bg-yellow-400 text-black border-yellow-600' :
                           index === 1 ? 'bg-gray-400 text-white border-gray-600' :
                           index === 2 ? 'bg-amber-600 text-white border-amber-800' :
@@ -192,7 +192,7 @@ export function RaceSessionComponent({ race, startingGrid, raceType, onRaceCompl
                         </div>
 
                         <div className="flex items-center gap-3 flex-1">
-                          <div className="relative w-8 h-8 rounded overflow-hidden bg-white border">
+                          <div className="relative w-6 h-6 rounded overflow-hidden bg-white border">
                             <Image
                               src={team.logo || "/placeholder.svg"}
                               alt={`${team.name} logo`}
@@ -202,7 +202,7 @@ export function RaceSessionComponent({ race, startingGrid, raceType, onRaceCompl
                           </div>
                           
                           <div>
-                            <div className="font-bold">{driver.name}</div>
+                            <div className="font-bold text-sm">{driver.name}</div>
                             <div className="text-xs text-muted-foreground">{team.name}</div>
                           </div>
                         </div>
@@ -213,13 +213,13 @@ export function RaceSessionComponent({ race, startingGrid, raceType, onRaceCompl
                               DNF
                             </Badge>
                           ) : (
-                            <div className="font-mono text-sm">
+                            <div className="font-mono text-xs">
                               {index === 0 ? "LÍDER" : `+${(Math.random() * 30).toFixed(1)}s`}
                             </div>
                           )}
                         </div>
 
-                        <div className="relative w-6 h-6 rounded overflow-hidden bg-white border">
+                        <div className="relative w-5 h-5 rounded overflow-hidden bg-white border">
                           <Image
                             src={manufacturer.logo || "/placeholder.svg"}
                             alt={`${manufacturer.name} logo`}
@@ -238,8 +238,8 @@ export function RaceSessionComponent({ race, startingGrid, raceType, onRaceCompl
           {/* Live Updates */}
           <div className="space-y-4">
             {/* Weather Updates */}
-            <Card className="border-2 border-blue-500">
-              <CardHeader className="bg-blue-500 text-white">
+            <Card className="border-2 border-blue-500 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   {getWeatherIcon(currentWeather)}
                   CONDIÇÕES
@@ -248,7 +248,7 @@ export function RaceSessionComponent({ race, startingGrid, raceType, onRaceCompl
               <CardContent className="pt-4">
                 <div className="space-y-3">
                   <div className="text-center">
-                    <div className="text-2xl font-bold">{currentWeather.toUpperCase()}</div>
+                    <div className="text-xl font-bold">{currentWeather.toUpperCase()}</div>
                     <div className="text-sm text-muted-foreground">
                       {currentWeather === "rainy" ? "Pneus de chuva obrigatórios" :
                        currentWeather === "cloudy" ? "Condições instáveis" :
@@ -275,8 +275,8 @@ export function RaceSessionComponent({ race, startingGrid, raceType, onRaceCompl
             </Card>
 
             {/* Recent Pit Stops */}
-            <Card className="border-2 border-orange-500">
-              <CardHeader className="bg-orange-500 text-white">
+            <Card className="border-2 border-orange-500 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Wrench className="h-5 w-5" />
                   PIT STOPS
@@ -313,8 +313,8 @@ export function RaceSessionComponent({ race, startingGrid, raceType, onRaceCompl
             </Card>
 
             {/* Race Info */}
-            <Card className="border-2 border-purple-500">
-              <CardHeader className="bg-purple-500 text-white">
+            <Card className="border-2 border-purple-500 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
                 <CardTitle className="text-lg">INFORMAÇÕES</CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
@@ -342,6 +342,12 @@ export function RaceSessionComponent({ race, startingGrid, raceType, onRaceCompl
                     <span>Troca Mínima:</span>
                     <Badge variant="outline">2 PNEUS</Badge>
                   </div>
+                  <div className="flex items-center justify-between">
+                    <span>Tempo Atual:</span>
+                    <Badge variant="outline" className="font-mono">
+                      {Math.floor(currentLap * 1.2)}:{((currentLap * 1.2 % 1) * 60).toFixed(0).padStart(2, '0')}
+                    </Badge>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -351,8 +357,8 @@ export function RaceSessionComponent({ race, startingGrid, raceType, onRaceCompl
 
       {/* Race Complete */}
       {raceComplete && simulation && (
-        <Card className="border-4 border-green-500">
-          <CardHeader className="bg-green-500 text-white">
+        <Card className="border-4 border-green-500 shadow-2xl">
+          <CardHeader className="bg-gradient-to-r from-green-500 via-green-600 to-green-500 text-white">
             <CardTitle className="text-2xl font-bold text-center flex items-center justify-center gap-3">
               <Flag className="h-8 w-8" />
               CORRIDA FINALIZADA!
@@ -366,6 +372,9 @@ export function RaceSessionComponent({ race, startingGrid, raceType, onRaceCompl
               <p className="text-lg text-muted-foreground">
                 Venceu {race.name}
               </p>
+              <div className="mt-2 text-sm text-muted-foreground">
+                Tempo Total: {Math.floor(race.laps * 1.2)}:{((race.laps * 1.2 % 1) * 60).toFixed(0).padStart(2, '0')}:{Math.floor(Math.random() * 60).toString().padStart(2, '0')}
+              </div>
             </div>
 
             {/* Top 3 */}
@@ -385,11 +394,39 @@ export function RaceSessionComponent({ race, startingGrid, raceType, onRaceCompl
                       <Badge variant="outline" className="mt-2">
                         {result.points} pts
                       </Badge>
+                      <div className="text-xs text-muted-foreground mt-1 font-mono">
+                        +{(index * 0.5 + Math.random() * 2).toFixed(3)}s
+                      </div>
                     </CardContent>
                   </Card>
                 )
               })}
             </div>
+
+            {/* Weather Summary */}
+            <Card className="border border-blue-200 bg-blue-50">
+              <CardContent className="pt-4">
+                <div className="text-center">
+                  <h4 className="font-semibold mb-2">Condições da Corrida</h4>
+                  <div className="flex items-center justify-center gap-4 text-sm">
+                    <div className="flex items-center gap-1">
+                      {getWeatherIcon(race.weather)}
+                      <span>Largada: {race.weather}</span>
+                    </div>
+                    <span>→</span>
+                    <div className="flex items-center gap-1">
+                      {getWeatherIcon(currentWeather)}
+                      <span>Final: {currentWeather}</span>
+                    </div>
+                  </div>
+                  {simulation.weatherChanges.length > 1 && (
+                    <div className="text-xs text-muted-foreground mt-2">
+                      {simulation.weatherChanges.length - 1} mudança(s) de tempo durante a corrida
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </CardContent>
         </Card>
       )}

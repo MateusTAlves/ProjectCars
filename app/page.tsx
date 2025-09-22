@@ -92,6 +92,13 @@ export default function StockCarManager() {
     }
   }
 
+  const simulateNextRace = () => {
+    if (currentSeason && !currentSeason.completed) {
+      const updatedSeason = seasonManager.simulateNextRace({ ...currentSeason })
+      setCurrentSeason(updatedSeason)
+    }
+  }
+
   if (showTeamSelection) {
     return <TeamSelection onTeamSelected={handleTeamSelected} />
   }
@@ -211,6 +218,7 @@ export default function StockCarManager() {
               season={currentSeason}
               onStartNewSeason={startNewSeason}
               onSimulateFullSeason={simulateFullSeason}
+              onSimulateNextRace={simulateNextRace}
               teamColor={teamPrimaryColor}
             />
           </TabsContent>
@@ -259,11 +267,13 @@ function DashboardOverview({
   season,
   onStartNewSeason,
   onSimulateFullSeason,
+  onSimulateNextRace,
   teamColor,
 }: {
   season: Season
   onStartNewSeason: () => void
   onSimulateFullSeason: () => void
+  onSimulateNextRace: () => void
   teamColor: string
 }) {
   const completedWeekends = Math.floor(season.races.filter((r) => r.completed).length / 2)
@@ -345,27 +355,86 @@ function DashboardOverview({
       </div>
 
       {!season.completed && completedWeekends < totalWeekends && (
-        <Card className="border-2 border-dashed" style={{ borderColor: teamColor + "40" }}>
-          <CardContent className="pt-6">
-            <div className="text-center py-6">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <Trophy className="h-10 w-10" style={{ color: teamColor }} />
-                <TrendingUp className="h-10 w-10" style={{ color: teamColor }} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="border-2" style={{ borderColor: teamColor + "40" }}>
+            <CardContent className="pt-6">
+              <div className="text-center py-4">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <Play className="h-8 w-8" style={{ color: teamColor }} />
+                </div>
+                <h3 className="text-lg font-bold mb-2">Próxima Corrida</h3>
+                <p className="text-muted-foreground mb-4 text-sm">
+                  Simule o próximo fim de semana de corrida
+                </p>
+                <Button
+                  onClick={onSimulateNextRace}
+                  className="px-6 py-2"
+                  style={{ backgroundColor: teamColor }}
+                  disabled={!nextWeekend}
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Simular Próxima
+                </Button>
               </div>
-              <h3 className="text-xl font-bold mb-3">Simular Temporada Completa</h3>
-              <p className="text-muted-foreground mb-6 text-sm max-w-md mx-auto">
-                Execute todos os {totalWeekends - completedWeekends} fins de semana restantes automaticamente e veja os resultados
-                finais da temporada {season.year}.
-              </p>
-              <Button
-                size="lg"
-                onClick={onSimulateFullSeason}
-                className="px-8 py-3"
-                style={{ backgroundColor: teamColor }}
-              >
-                <Play className="h-5 w-5 mr-2" />
-                Simular Temporada Inteira
-              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-dashed" style={{ borderColor: teamColor + "40" }}>
+            <CardContent className="pt-6">
+              <div className="text-center py-4">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <Trophy className="h-8 w-8" style={{ color: teamColor }} />
+                  <TrendingUp className="h-8 w-8" style={{ color: teamColor }} />
+                </div>
+                <h3 className="text-lg font-bold mb-2">Temporada Completa</h3>
+                <p className="text-muted-foreground mb-4 text-sm">
+                  Simule todos os {totalWeekends - completedWeekends} fins de semana restantes
+                </p>
+                <Button
+                  size="lg"
+                  onClick={onSimulateFullSeason}
+                  className="px-6 py-2"
+                  style={{ backgroundColor: teamColor }}
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Simular Tudo
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {!season.completed && completedWeekends < totalWeekends && nextWeekend && (
+        <Card className="border-2" style={{ borderColor: teamColor + "20", backgroundColor: teamColor + "05" }}>
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="text-4xl">{nextWeekend.race1.flag}</div>
+                <div>
+                  <h3 className="text-xl font-bold">Próximo: GP {nextWeekend.race1.location}</h3>
+                  <p className="text-muted-foreground">{nextWeekend.race1.track} • {nextWeekend.race1.state}</p>
+                </div>
+                <div className="ml-auto">
+                  <Badge variant="outline" className="text-sm px-3 py-1">
+                    {new Date(nextWeekend.race1.date).toLocaleDateString("pt-BR", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </Badge>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 rounded-lg bg-white border">
+                  <div className="text-sm font-medium text-center">CORRIDA 1</div>
+                  <div className="text-xs text-muted-foreground text-center">{nextWeekend.race1.laps} voltas</div>
+                </div>
+                <div className="p-3 rounded-lg bg-white border">
+                  <div className="text-sm font-medium text-center">CORRIDA 2</div>
+                  <div className="text-xs text-muted-foreground text-center">{nextWeekend.race2.laps} voltas • Grid Invertido</div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
