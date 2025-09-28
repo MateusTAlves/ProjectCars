@@ -67,13 +67,7 @@ export class RaceSimulator {
     // Simulate race with all factors
     const results = this.simulateRaceProgression(race, grid, pitStops, weatherChanges)
 
-    return {
-      race,
-      startingGrid: grid,
-      pitStops,
-      weatherChanges,
-      results
-    }
+    return results
   }
 
   private generateDynamicWeather(race: Race): WeatherCondition[] {
@@ -140,15 +134,16 @@ export class RaceSimulator {
     }
 
     grid.forEach(gridPosition => {
-      const driver = DRIVERS.find(d => d.id === gridPosition.driverId)!
-      const team = TEAMS.find(t => t.id === driver.teamId)!
+      const driver = DRIVERS.find(d => d.id === gridPosition.driverId)
+      if (!driver) return // pula se não encontrar o driver
+      const team = TEAMS.find(t => t.id === driver.teamId)
       
       // Mandatory pit stop
       const pitLap = mandatoryWindow.start + Math.floor(Math.random() * (mandatoryWindow.end - mandatoryWindow.start))
       
       // Pit stop duration varies by team efficiency
       const baseDuration = 25 // 25 seconds base
-      const teamEfficiency = (team.facilities / 100) * 5 // Up to 5 seconds improvement
+      const teamEfficiency = team ? (team.facilities / 100) * 5 : 0 // Up to 5 seconds improvement, 0 if team is undefined
       const randomFactor = (Math.random() - 0.5) * 4 // ±2 seconds random
       
       const duration = Math.max(20, baseDuration - teamEfficiency + randomFactor)
@@ -198,7 +193,7 @@ export class RaceSimulator {
     grid: QualifyingResult[], 
     pitStops: PitStop[], 
     weatherChanges: WeatherCondition[]
-  ): RaceResult[] {
+  ): RaceSimulationData {
     const racePositions = grid.map((gridPos, index) => ({
       driverId: gridPos.driverId,
       position: index + 1,
@@ -406,6 +401,10 @@ export class RaceSimulator {
   }
 
   updateDriverStats(results: RaceResult[]): void {
+    // Garante que results é um array
+    if (!Array.isArray(results)) {
+      results = [results]
+    }
     results.forEach((result) => {
       const driver = this.drivers.find((d) => d.id === result.driverId)
       if (driver) {

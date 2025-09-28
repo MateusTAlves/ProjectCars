@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar, ChevronLeft, ChevronRight, Play, CheckCircle, Lock, Flag, Sun, Cloud, CloudRain } from "lucide-react"
 import type { Race, Season } from "@/lib/stock-car-data"
 import { RaceWeekend } from "./race-weekend"
+import { DRIVERS } from "@/lib/stock-car-data"
 
 interface FunctionalCalendarProps {
   season: Season
@@ -217,7 +218,19 @@ export function FunctionalCalendar({ season, onRaceComplete }: FunctionalCalenda
                         {race1.completed && race1.results && (
                           <div className="mt-2">
                             <Badge variant="outline" className="text-xs">
-                              Vencedor: {DRIVERS.find(d => d.id === race1.results![0]?.driverId)?.name.split(' ')[0]}
+                              Vencedor: {
+                                Array.isArray(race1.results) && race1.results.length > 0
+                                  ? (
+                                      race1.results && race1.results.length > 0
+                                        ? (race1.results && race1.results.length > 0
+                                            ? (race1.results && race1.results.length > 0
+                                                ? DRIVERS.find(d => d.id === race1.results?.[0]?.driverId)?.name?.split(' ')[0] ?? "N/A"
+                                                : "N/A")
+                                            : "N/A")
+                                        : "N/A"
+                                    )
+                                  : "N/A"
+                              }
                             </Badge>
                             <div className="text-xs text-muted-foreground mt-1 font-mono">
                               Tempo: 1:{(20 + Math.random() * 10).toFixed(0)}:{Math.floor(Math.random() * 60).toString().padStart(2, '0')}.{Math.floor(Math.random() * 1000).toString().padStart(3, '0')}

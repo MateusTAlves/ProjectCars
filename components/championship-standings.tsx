@@ -192,8 +192,10 @@ export function ChampionshipStandings({ season, previousSeason }: ChampionshipSt
                                 <div
                                   className="w-4 h-4 rounded-full border"
                                   style={{ backgroundColor: team?.colors.secondary }}
-                                  <span className="font-mono">Melhor: 1:{(8 + Math.random() * 4).toFixed(0)}.{Math.floor(Math.random() * 1000).toString().padStart(3, '0')}</span>
                                 />
+                                <span className="font-mono">
+                                  Melhor: 1:{(8 + Math.random() * 4).toFixed(0)}.{Math.floor(Math.random() * 1000).toString().padStart(3, '0')}
+                                </span>
                               </div>
                             </div>
                             <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">

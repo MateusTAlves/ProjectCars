@@ -25,7 +25,11 @@ export class SeasonManager {
   }
 
   createSeason(year: number): Season {
-    const evolutionEvents = this.evolutionManager.simulateSeasonEvolution(year)
+    const evolutionEventsRaw = this.evolutionManager.simulateSeasonEvolution(year)
+    const evolutionEvents = evolutionEventsRaw.map(event => ({
+      ...event,
+      name: event.description ?? "Unknown Event"
+    }))
     if (evolutionEvents.length > 0) {
       this.applyEvolutionToGlobalData(evolutionEvents)
     }
@@ -121,8 +125,10 @@ export class SeasonManager {
       // Race 2 - use inverted grid from Race 1
       const race1 = season.races.find(r => r.id === nextRace.id.replace('-race2', '-race1'))
       if (race1 && race1.results) {
+        // Garante que race1.results é um array
+        const race1ResultsArray = Array.isArray(race1.results) ? race1.results : [race1.results]
         // Create grid from Race 1 results
-        const race1Grid = race1.results.filter(r => !r.dnf).map((result, index) => ({
+        const race1Grid = race1ResultsArray.filter(r => !r.dnf).map((result, index) => ({
           position: result.position,
           driverId: result.driverId,
           lapTime: 70000, // Placeholder
