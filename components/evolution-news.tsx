@@ -4,103 +4,26 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Newspaper, Clock, TrendingUp, Users, Building, Factory } from "lucide-react"
+import { Newspaper, Clock, TrendingUp, Users, Building, Factory, Zap, Globe, Settings } from "lucide-react"
 import type { HistoricalEvent } from "@/lib/historical-evolution"
-
-interface EvolutionNewsProps {
-  events: HistoricalEvent[]
-  currentYear: number
-}
-
-interface NewsArticle {
-  id: string
-  title: string
-  content: string
-  category: "breaking" | "analysis" | "interview" | "announcement"
-  timestamp: Date
-  event: HistoricalEvent
-}
+import { EnhancedNewsGenerator, type NewsArticle } from "@/lib/enhanced-news-generator"
 
 export function EvolutionNews({ events, currentYear }: EvolutionNewsProps) {
   const [articles, setArticles] = useState<NewsArticle[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
+  const [newsGenerator] = useState(() => new EnhancedNewsGenerator())
 
   useEffect(() => {
-    // Generate news articles from recent events
+    // Generate comprehensive news including events, random news, and weekly content
     const recentEvents = events.filter((event) => event.year === currentYear)
-    const newArticles = recentEvents.map((event) => generateNewsArticle(event))
-    setArticles(newArticles)
-  }, [events, currentYear])
+    const seasonNews = newsGenerator.generateSeasonNews(currentYear, recentEvents)
+    const weeklyNews = newsGenerator.generateWeeklyNews(currentYear)
+    
+    const allNews = [...seasonNews, ...weeklyNews]
+    setArticles(allNews)
+  }, [events, currentYear, newsGenerator])
 
-  const generateNewsArticle = (event: HistoricalEvent): NewsArticle => {
-    const templates = {
-      driver_entry: {
-        breaking: {
-          title: `OFICIAL: ${event.entityName} assina com equipe do Stock Car Brasil`,
-          content: `Em uma movimentação que promete agitar o grid, ${event.entityName} foi oficialmente anunciado como novo piloto para a temporada ${event.year}. O piloto chega com grandes expectativas e promete lutar por posições de destaque.`,
-        },
-        analysis: {
-          title: `Análise: O que ${event.entityName} pode trazer para o campeonato`,
-          content: `A chegada de ${event.entityName} representa uma nova dinâmica no Stock Car Brasil. Com sua experiência e talento, o piloto pode ser uma peça-chave na disputa pelo título desta temporada.`,
-        },
-      },
-      driver_exit: {
-        breaking: {
-          title: `${event.entityName} anuncia aposentadoria do Stock Car Brasil`,
-          content: `Após anos de dedicação ao automobilismo nacional, ${event.entityName} oficializou sua saída do Stock Car Brasil. O piloto deixa um legado importante na categoria.`,
-        },
-        interview: {
-          title: `"Foi uma jornada incrível", diz ${event.entityName} sobre aposentadoria`,
-          content: `Em entrevista exclusiva, ${event.entityName} reflete sobre sua carreira no Stock Car Brasil e os momentos mais marcantes de sua trajetória no automobilismo.`,
-        },
-      },
-      team_entry: {
-        announcement: {
-          title: `${event.entityName} confirma entrada no Stock Car Brasil`,
-          content: `A nova equipe ${event.entityName} foi oficialmente confirmada para disputar o campeonato. Com investimentos significativos, a equipe promete ser competitiva desde sua estreia.`,
-        },
-      },
-      team_exit: {
-        breaking: {
-          title: `${event.entityName} anuncia saída do Stock Car Brasil`,
-          content: `Por motivos financeiros, a equipe ${event.entityName} confirmou sua saída do campeonato. A decisão impacta diretamente os pilotos e funcionários da equipe.`,
-        },
-      },
-      manufacturer_entry: {
-        announcement: {
-          title: `${event.entityName} entra oficialmente no Stock Car Brasil`,
-          content: `A montadora ${event.entityName} marca sua entrada no automobilismo nacional com grandes investimentos e expectativas de competitividade.`,
-        },
-      },
-    }
-
-    const eventTemplates = templates[event.type as keyof typeof templates]
-    if (!eventTemplates) {
-      return {
-        id: `news-${event.id}`,
-        title: `Novidades sobre ${event.entityName}`,
-        content: event.description,
-        category: "announcement",
-        timestamp: new Date(),
-        event,
-      }
-    }
-
-    const templateKeys = Object.keys(eventTemplates)
-    const randomTemplate = templateKeys[Math.floor(Math.random() * templateKeys.length)]
-    const template = eventTemplates[randomTemplate as keyof typeof eventTemplates]
-
-    return {
-      id: `news-${event.id}`,
-      title: template.title,
-      content: template.content,
-      category: randomTemplate as NewsArticle["category"],
-      timestamp: new Date(),
-      event,
-    }
-  }
-
-  const getCategoryIcon = (category: NewsArticle["category"]) => {
+  const getCategoryIcon = (category: string) => {
     switch (category) {
       case "breaking":
         return <TrendingUp className="h-4 w-4 text-red-600" />
@@ -110,12 +33,18 @@ export function EvolutionNews({ events, currentYear }: EvolutionNewsProps) {
         return <Users className="h-4 w-4 text-green-600" />
       case "announcement":
         return <Building className="h-4 w-4 text-purple-600" />
+      case "race_preview":
+        return <Zap className="h-4 w-4 text-orange-600" />
+      case "technical":
+        return <Settings className="h-4 w-4 text-gray-600" />
+      case "market":
+        return <Globe className="h-4 w-4 text-indigo-600" />
       default:
         return <Newspaper className="h-4 w-4" />
     }
   }
 
-  const getCategoryLabel = (category: NewsArticle["category"]) => {
+  const getCategoryLabel = (category: string) => {
     switch (category) {
       case "breaking":
         return "Última Hora"
@@ -125,12 +54,18 @@ export function EvolutionNews({ events, currentYear }: EvolutionNewsProps) {
         return "Entrevista"
       case "announcement":
         return "Anúncio"
+      case "race_preview":
+        return "Preview"
+      case "technical":
+        return "Técnico"
+      case "market":
+        return "Mercado"
       default:
         return "Notícia"
     }
   }
 
-  const getCategoryColor = (category: NewsArticle["category"]) => {
+  const getCategoryColor = (category: string) => {
     switch (category) {
       case "breaking":
         return "bg-red-100 text-red-800 border-red-200"
@@ -140,6 +75,12 @@ export function EvolutionNews({ events, currentYear }: EvolutionNewsProps) {
         return "bg-green-100 text-green-800 border-green-200"
       case "announcement":
         return "bg-purple-100 text-purple-800 border-purple-200"
+      case "race_preview":
+        return "bg-orange-100 text-orange-800 border-orange-200"
+      case "technical":
+        return "bg-gray-100 text-gray-800 border-gray-200"
+      case "market":
+        return "bg-indigo-100 text-indigo-800 border-indigo-200"
       default:
         return "bg-gray-100 text-gray-800 border-gray-200"
     }
@@ -156,6 +97,9 @@ export function EvolutionNews({ events, currentYear }: EvolutionNewsProps) {
     { value: "analysis", label: "Análises" },
     { value: "interview", label: "Entrevistas" },
     { value: "announcement", label: "Anúncios" },
+    { value: "race_preview", label: "Previews" },
+    { value: "technical", label: "Técnico" },
+    { value: "market", label: "Mercado" },
   ]
 
   return (
@@ -230,18 +174,14 @@ export function EvolutionNews({ events, currentYear }: EvolutionNewsProps) {
                         <p className="text-muted-foreground leading-relaxed">{article.content}</p>
 
                         <div className="flex items-center gap-4 mt-4 pt-4 border-t">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            {article.event.type.includes("driver") && <Users className="h-4 w-4" />}
-                            {article.event.type.includes("team") && <Building className="h-4 w-4" />}
-                            {article.event.type.includes("manufacturer") && <Factory className="h-4 w-4" />}
-                            <span>Relacionado: {article.event.entityName}</span>
-                          </div>
-                          <Badge variant="outline" className="text-xs">
-                            {article.event.impact === "high"
-                              ? "Alto Impacto"
-                              : article.event.impact === "medium"
-                                ? "Médio Impacto"
-                                : "Baixo Impacto"}
+                          {article.tags.map((tag) => (
+                            <Badge key={tag} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                          <Badge variant="outline" className="text-xs ml-auto">
+                            {article.priority === "high" ? "Alta Prioridade" : 
+                             article.priority === "medium" ? "Média Prioridade" : "Baixa Prioridade"}
                           </Badge>
                         </div>
                       </div>

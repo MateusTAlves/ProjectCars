@@ -512,8 +512,8 @@ export class HistoricalEvolutionManager {
   simulateSeasonEvolution(year: number): HistoricalEvent[] {
     const newEvents: HistoricalEvent[] = []
 
-    // Random chance for new manufacturer entry (5% chance)
-    if (Math.random() < 0.05) {
+    // Increased chance for new manufacturer entry (12% chance)
+    if (Math.random() < 0.12) {
       const availableManufacturers = this.potentialNewManufacturers.filter(
         (m) => !m.active && m.enteredYear <= year && !this.usedManufacturerIds.has(m.id),
       )
@@ -533,8 +533,8 @@ export class HistoricalEvolutionManager {
       }
     }
 
-    // Random chance for new team entry (10% chance)
-    if (Math.random() < 0.1) {
+    // Increased chance for new team entry (20% chance)
+    if (Math.random() < 0.2) {
       const availableTeams = this.potentialNewTeams.filter((t) => !t.active && !this.usedTeamIds.has(t.id))
       if (availableTeams.length > 0) {
         const newTeam = availableTeams[Math.floor(Math.random() * availableTeams.length)]
@@ -552,8 +552,8 @@ export class HistoricalEvolutionManager {
       }
     }
 
-    // Random chance for new driver entry (15% chance)
-    if (Math.random() < 0.15) {
+    // Increased chance for new driver entry (25% chance)
+    if (Math.random() < 0.25) {
       const availableDrivers = this.potentialNewDrivers.filter((d) => !d.active && !this.usedDriverIds.has(d.id))
       if (availableDrivers.length > 0) {
         const newDriver = availableDrivers[Math.floor(Math.random() * availableDrivers.length)]

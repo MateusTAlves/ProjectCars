@@ -60,14 +60,17 @@ export class RaceSimulator {
 
     // Generate dynamic weather
     const weatherChanges = this.generateDynamicWeather(race)
-    
-    // Generate mandatory pit stops
     const pitStops = this.generatePitStops(race, grid)
-    
-    // Simulate race with all factors
     const results = this.simulateRaceProgression(race, grid, pitStops, weatherChanges)
 
-    return results
+    // Corrigido: retorna RaceSimulationData
+    return {
+      race,
+      startingGrid: grid,
+      pitStops,
+      weatherChanges,
+      results
+    }
   }
 
   private generateDynamicWeather(race: Race): WeatherCondition[] {
@@ -134,16 +137,15 @@ export class RaceSimulator {
     }
 
     grid.forEach(gridPosition => {
-      const driver = DRIVERS.find(d => d.id === gridPosition.driverId)
-      if (!driver) return // pula se não encontrar o driver
-      const team = TEAMS.find(t => t.id === driver.teamId)
+      const driver = DRIVERS.find(d => d.id === gridPosition.driverId)!
+      const team = TEAMS.find(t => t.id === driver.teamId)!
       
       // Mandatory pit stop
       const pitLap = mandatoryWindow.start + Math.floor(Math.random() * (mandatoryWindow.end - mandatoryWindow.start))
       
       // Pit stop duration varies by team efficiency
       const baseDuration = 25 // 25 seconds base
-      const teamEfficiency = team ? (team.facilities / 100) * 5 : 0 // Up to 5 seconds improvement, 0 if team is undefined
+      const teamEfficiency = (team.facilities / 100) * 5 // Up to 5 seconds improvement
       const randomFactor = (Math.random() - 0.5) * 4 // ±2 seconds random
       
       const duration = Math.max(20, baseDuration - teamEfficiency + randomFactor)
@@ -193,7 +195,14 @@ export class RaceSimulator {
     grid: QualifyingResult[], 
     pitStops: PitStop[], 
     weatherChanges: WeatherCondition[]
-  ): RaceSimulationData {
+  ): RaceResult[] {
+    // Create more varied performance by adding race-specific factors
+    const raceCharacteristics = {
+      trackFactor: Math.random() * 0.4 + 0.8, // 0.8-1.2 multiplier
+      overtakingDifficulty: Math.random() * 0.5 + 0.5, // 0.5-1.0 (easier to harder)
+      tyreWearRate: Math.random() * 0.3 + 0.85, // 0.85-1.15 multiplier
+    }
+
     const racePositions = grid.map((gridPos, index) => ({
       driverId: gridPos.driverId,
       position: index + 1,
@@ -204,7 +213,9 @@ export class RaceSimulator {
       dnfReason: undefined as string | undefined,
       pitStopsCompleted: 0,
       currentTyres: "slick" as "slick" | "rain",
-      mandatoryPitCompleted: false
+      mandatoryPitCompleted: false,
+      raceForm: Math.random() * 0.4 + 0.8, // Individual race form 0.8-1.2
+      setupQuality: Math.random() * 0.3 + 0.85, // Setup quality 0.85-1.15
     }))
 
     // Simulate each lap
@@ -243,14 +254,24 @@ export class RaceSimulator {
         let lapTime = 70000 + Math.random() * 2000 // 70-72 seconds
 
         // Driver factors
-        const skillFactor = (100 - driver.skill) * 50
-        const consistencyFactor = (100 - driver.consistency) * 30
+        const skillFactor = (100 - driver.skill) * (40 + Math.random() * 20) * raceCharacteristics.trackFactor
+        const consistencyFactor = (100 - driver.consistency) * (25 + Math.random() * 15)
         
         // Team factors
-        const teamFactor = (100 - team.reputation) * 25
+        const teamFactor = (100 - team.reputation) * (20 + Math.random() * 15)
         
         // Manufacturer factors
-        const manufacturerFactor = (100 - manufacturer.performance) * 20
+        const manufacturerFactor = (100 - manufacturer.performance) * (15 + Math.random() * 15) * raceCharacteristics.trackFactor
+
+        // Race-specific factors
+        const formFactor = (2 - racePos.raceForm) * 800 // Better form = faster times
+        const setupFactor = (1.15 - racePos.setupQuality) * 600 // Better setup = faster times
+
+        // Overtaking attempts (position changes during race)
+        if (Math.random() < (0.1 / raceCharacteristics.overtakingDifficulty) && lap > 5) {
+          // Small time bonus for successful overtaking moves
+          lapTime -= Math.random() * 200
+        }
 
         // Weather factors
         let weatherFactor = 0
@@ -259,26 +280,26 @@ export class RaceSimulator {
           
           // Wrong tyres penalty
           if (racePos.currentTyres === "slick") {
-            weatherFactor += 8000 // Massive penalty for slicks in rain
+            weatherFactor += 6000 + Math.random() * 4000 // 6-10 second penalty
           }
           
           // Skilled drivers handle rain better
-          weatherFactor -= (driver.skill - 50) * 40
+          weatherFactor -= (driver.skill - 50) * (30 + Math.random() * 20)
         } else if (currentWeather.condition === "cloudy") {
-          weatherFactor = 200 + Math.random() * 800
+          weatherFactor = 100 + Math.random() * 600
         }
 
         // Tyre degradation (gets worse as race progresses)
-        const tyreDegradation = (lap / race.laps) * 1000 * (1 - (manufacturer.reliability / 100))
+        const tyreDegradation = (lap / race.laps) * 800 * (1 - (manufacturer.reliability / 100)) * raceCharacteristics.tyreWearRate
 
         // Fuel load (gets lighter as race progresses - no refueling allowed)
-        const fuelFactor = Math.max(0, (race.laps - lap) * 20) // Lighter car = faster
+        const fuelFactor = Math.max(0, (race.laps - lap) * (18 + Math.random() * 8)) // 18-26ms per lap
 
-        // Random factor
-        const randomFactor = (Math.random() - 0.5) * 800
+        // Random factor (larger for more unpredictability)
+        const randomFactor = (Math.random() - 0.5) * 1200
 
-        // DNF probability (very low, but increases with damage)
-        const dnfProbability = Math.max(0, (100 - driver.consistency - manufacturer.reliability) / 500)
+        // DNF probability (slightly higher for more realistic racing)
+        const dnfProbability = Math.max(0, (100 - driver.consistency - manufacturer.reliability) / 400)
         if (Math.random() < dnfProbability) {
           racePos.onTrack = false
           racePos.dnf = true
@@ -286,7 +307,7 @@ export class RaceSimulator {
           return
         }
 
-        const finalLapTime = lapTime + skillFactor + consistencyFactor + teamFactor + manufacturerFactor + weatherFactor + tyreDegradation - fuelFactor + randomFactor
+        const finalLapTime = lapTime + skillFactor + consistencyFactor + teamFactor + manufacturerFactor + weatherFactor + tyreDegradation - fuelFactor + randomFactor + formFactor + setupFactor
         
         racePos.lastLapTime = Math.max(65000, finalLapTime)
         racePos.totalTime += racePos.lastLapTime
@@ -357,13 +378,8 @@ export class RaceSimulator {
       results[fastestLapIndex].points += 1 // Bonus point for fastest lap
     }
 
-    return {
-      race,
-      startingGrid: grid,
-      pitStops,
-      weatherChanges,
-      results
-    }
+    // No final, retorna apenas o array de resultados
+    return results
   }
 
   private getCurrentWeather(lap: number, weatherChanges: WeatherCondition[]): WeatherCondition {
@@ -401,9 +417,8 @@ export class RaceSimulator {
   }
 
   updateDriverStats(results: RaceResult[]): void {
-    // Garante que results é um array
     if (!Array.isArray(results)) {
-      results = [results]
+      results = Array.from(results)
     }
     results.forEach((result) => {
       const driver = this.drivers.find((d) => d.id === result.driverId)

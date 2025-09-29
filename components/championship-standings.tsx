@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Trophy, TrendingUp, TrendingDown, Minus, Crown, Medal, Award } from "lucide-react"
+import { Trophy, TrendingUp, TrendingDown, Minus, Crown, Medal, Award, Users, Building2, Car } from "lucide-react"
 import type { Season } from "@/lib/stock-car-data"
 import { DRIVERS, TEAMS, MANUFACTURERS } from "@/lib/stock-car-data"
 import { ChampionshipCalculator } from "@/lib/championship-calculator"
@@ -59,32 +59,43 @@ export function ChampionshipStandings({ season, previousSeason }: ChampionshipSt
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-content">
       {/* Championship Header */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-6 w-6 text-primary" />
-            Classificação do Campeonato {season.year}
+      <Card className="clean-card">
+        <CardHeader className="pb-6">
+          <CardTitle className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-yellow-100">
+              <Trophy className="h-6 w-6 text-yellow-600" />
+            </div>
+            <span className="title-medium">Classificação do Campeonato {season.year}</span>
           </CardTitle>
         </CardHeader>
       </Card>
 
-      <Tabs defaultValue="drivers" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="drivers">Pilotos</TabsTrigger>
-          <TabsTrigger value="teams">Equipes</TabsTrigger>
-          <TabsTrigger value="manufacturers">Montadoras</TabsTrigger>
+      <Tabs defaultValue="drivers" className="space-content">
+        <TabsList className="grid w-full grid-cols-3 h-12 p-1 bg-secondary rounded-lg border">
+          <TabsTrigger value="drivers" className="clean-tab data-[state=active]:clean-tab-active">
+            <Users className="h-5 w-5 mr-2" />
+            Pilotos
+          </TabsTrigger>
+          <TabsTrigger value="teams" className="clean-tab data-[state=active]:clean-tab-active">
+            <Building2 className="h-5 w-5 mr-2" />
+            Equipes
+          </TabsTrigger>
+          <TabsTrigger value="manufacturers" className="clean-tab data-[state=active]:clean-tab-active">
+            <Car className="h-5 w-5 mr-2" />
+            Montadoras
+          </TabsTrigger>
         </TabsList>
 
         {/* Driver Standings */}
         <TabsContent value="drivers" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Classificação dos Pilotos</CardTitle>
+          <Card className="clean-card">
+            <CardHeader className="pb-6">
+              <CardTitle className="title-small">Classificação dos Pilotos</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="space-items">
                 {driverStandings.map((standing) => {
                   const driver = DRIVERS.find((d) => d.id === standing.driverId)
                   const team = TEAMS.find((t) => t.id === driver?.teamId)
@@ -96,8 +107,8 @@ export function ChampionshipStandings({ season, previousSeason }: ChampionshipSt
                   return (
                     <div
                       key={standing.driverId}
-                      className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-                        selectedDriver === standing.driverId ? "ring-2 ring-primary bg-primary/5" : "hover:bg-accent/50"
+                      className={`p-4 rounded-lg border cursor-pointer transition-all hover-lift ${
+                        selectedDriver === standing.driverId ? "ring-2 ring-primary shadow-md" : "hover:shadow-md"
                       }`}
                       onClick={() => setSelectedDriver(standing.driverId)}
                     >
@@ -109,7 +120,7 @@ export function ChampionshipStandings({ season, previousSeason }: ChampionshipSt
                               <div className="flex items-center gap-1">
                                 {getChangeIcon(positionChange)}
                                 {positionChange !== 0 && (
-                                  <span className="text-xs text-muted-foreground">{Math.abs(positionChange)}</span>
+                                  <span className="text-sm text-primary/70 font-bold">{Math.abs(positionChange)}</span>
                                 )}
                               </div>
                             )}
@@ -118,25 +129,25 @@ export function ChampionshipStandings({ season, previousSeason }: ChampionshipSt
                           <div className="flex-1">
                             <div className="flex items-center gap-3">
                               <h3 className="font-semibold text-lg">{driver?.name}</h3>
-                              <Badge variant="outline" className="text-xs">
+                              <Badge className="text-xs clean-badge">
                                 {team?.name}
                               </Badge>
-                              <Badge variant="secondary" className="text-xs">
+                              <Badge className="text-xs bg-blue-100 text-blue-800">
                                 {manufacturer?.name}
                               </Badge>
                             </div>
-                            <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                              <span>{standing.wins} vitórias</span>
-                              <span>{standing.podiums} pódios</span>
-                              <span>{standing.fastestLaps} voltas rápidas</span>
-                              {pointsGap > 0 && <span className="text-red-500">-{pointsGap} pts do líder</span>}
+                            <div className="flex items-center gap-4 mt-2 text-sm">
+                              <span className="text-yellow-600 font-medium">{standing.wins} vitórias</span>
+                              <span className="accent-green font-medium">{standing.podiums} pódios</span>
+                              <span className="accent-purple font-medium">{standing.fastestLaps} voltas rápidas</span>
+                              {pointsGap > 0 && <span className="accent-red font-medium">-{pointsGap} pts do líder</span>}
                             </div>
                           </div>
                         </div>
 
                         <div className="text-right">
-                          <div className="text-2xl font-bold text-primary">{standing.points}</div>
-                          <div className="text-xs text-muted-foreground">pontos</div>
+                          <div className="text-2xl font-bold">{standing.points}</div>
+                          <div className="text-subtle">Pontos</div>
 
                           {/* Form indicator */}
                           {form.length > 0 && (
@@ -162,26 +173,26 @@ export function ChampionshipStandings({ season, previousSeason }: ChampionshipSt
 
         {/* Team Standings */}
         <TabsContent value="teams" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Classificação das Equipes</CardTitle>
+          <Card className="clean-card">
+            <CardHeader className="pb-6">
+              <CardTitle className="title-small">Classificação das Equipes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="space-items">
                 {teamStandings.map((standing) => {
                   const team = TEAMS.find((t) => t.id === standing.teamId)
                   const manufacturer = MANUFACTURERS.find((m) => m.id === team?.manufacturerId)
                   const teamDrivers = DRIVERS.filter((d) => d.teamId === standing.teamId && d.active)
 
                   return (
-                    <div key={standing.teamId} className="p-4 rounded-lg border hover:bg-accent/50 transition-colors">
+                    <div key={standing.teamId} className="p-4 rounded-lg border hover-lift">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           {getPositionIcon(standing.position)}
                           <div className="flex-1">
                             <div className="flex items-center gap-3">
                               <h3 className="font-semibold text-lg">{team?.name}</h3>
-                              <Badge variant="secondary" className="text-xs">
+                              <Badge className="text-xs bg-blue-100 text-blue-800">
                                 {manufacturer?.name}
                               </Badge>
                               <div className="flex gap-1">
@@ -193,22 +204,19 @@ export function ChampionshipStandings({ season, previousSeason }: ChampionshipSt
                                   className="w-4 h-4 rounded-full border"
                                   style={{ backgroundColor: team?.colors.secondary }}
                                 />
-                                <span className="font-mono">
-                                  Melhor: 1:{(8 + Math.random() * 4).toFixed(0)}.{Math.floor(Math.random() * 1000).toString().padStart(3, '0')}
-                                </span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                              <span>{standing.wins} vitórias</span>
-                              <span>{standing.podiums} pódios</span>
-                              <span>Pilotos: {teamDrivers.map((d) => d.name.split(" ")[0]).join(", ")}</span>
+                            <div className="flex items-center gap-4 mt-2 text-sm">
+                              <span className="text-yellow-600 font-medium">{standing.wins} vitórias</span>
+                              <span className="accent-green font-medium">{standing.podiums} pódios</span>
+                              <span className="text-muted-foreground">Pilotos: {teamDrivers.map((d) => d.name.split(" ")[0]).join(", ")}</span>
                             </div>
                           </div>
                         </div>
 
                         <div className="text-right">
-                          <div className="text-2xl font-bold text-primary">{standing.points}</div>
-                          <div className="text-xs text-muted-foreground">pontos</div>
+                          <div className="text-2xl font-bold">{standing.points}</div>
+                          <div className="text-subtle">Pontos</div>
                         </div>
                       </div>
                     </div>
@@ -221,12 +229,12 @@ export function ChampionshipStandings({ season, previousSeason }: ChampionshipSt
 
         {/* Manufacturer Standings */}
         <TabsContent value="manufacturers" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Classificação das Montadoras</CardTitle>
+          <Card className="clean-card">
+            <CardHeader className="pb-6">
+              <CardTitle className="title-small">Classificação das Montadoras</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="space-items">
                 {manufacturerStandings.map((standing) => {
                   const manufacturer = MANUFACTURERS.find((m) => m.id === standing.manufacturerId)
                   const manufacturerTeams = TEAMS.filter(
@@ -239,7 +247,7 @@ export function ChampionshipStandings({ season, previousSeason }: ChampionshipSt
                   return (
                     <div
                       key={standing.manufacturerId}
-                      className="p-4 rounded-lg border hover:bg-accent/50 transition-colors"
+                      className="p-4 rounded-lg border hover-lift"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -247,22 +255,22 @@ export function ChampionshipStandings({ season, previousSeason }: ChampionshipSt
                           <div className="flex-1">
                             <div className="flex items-center gap-3">
                               <h3 className="font-semibold text-lg">{manufacturer?.name}</h3>
-                              <Badge variant="outline" className="text-xs">
+                              <Badge className="text-xs clean-badge">
                                 {manufacturer?.country}
                               </Badge>
                             </div>
-                            <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                              <span>{standing.wins} vitórias</span>
-                              <span>{standing.podiums} pódios</span>
-                              <span>{manufacturerTeams.length} equipes</span>
-                              <span>{manufacturerDrivers.length} pilotos</span>
+                            <div className="flex items-center gap-4 mt-2 text-sm">
+                              <span className="text-yellow-600 font-medium">{standing.wins} vitórias</span>
+                              <span className="accent-green font-medium">{standing.podiums} pódios</span>
+                              <span className="accent-blue font-medium">{manufacturerTeams.length} equipes</span>
+                              <span className="accent-purple font-medium">{manufacturerDrivers.length} pilotos</span>
                             </div>
                           </div>
                         </div>
 
                         <div className="text-right">
-                          <div className="text-2xl font-bold text-primary">{standing.points}</div>
-                          <div className="text-xs text-muted-foreground">pontos</div>
+                          <div className="text-2xl font-bold">{standing.points}</div>
+                          <div className="text-subtle">Pontos</div>
                           <div className="text-xs text-muted-foreground mt-1">Desde {manufacturer?.enteredYear}</div>
                         </div>
                       </div>
@@ -278,7 +286,7 @@ export function ChampionshipStandings({ season, previousSeason }: ChampionshipSt
       {/* Driver Detail Modal */}
       {selectedDriver && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-background rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="clean-card max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               {(() => {
                 const driver = DRIVERS.find((d) => d.id === selectedDriver)
@@ -287,71 +295,71 @@ export function ChampionshipStandings({ season, previousSeason }: ChampionshipSt
                 const form = getDriverForm(selectedDriver)
 
                 return (
-                  <div className="space-y-6">
+                  <div className="space-content">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold">{driver?.name}</h2>
-                      <Button variant="outline" onClick={() => setSelectedDriver(null)}>
+                      <h2 className="title-medium">{driver?.name}</h2>
+                      <Button className="clean-button-secondary" onClick={() => setSelectedDriver(null)}>
                         Fechar
                       </Button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <Card>
-                        <CardContent className="pt-6">
+                    <div className="grid grid-cols-2 gap-6">
+                      <Card className="clean-card">
+                        <CardContent className="p-6">
                           <div className="text-center">
-                            <div className="text-3xl font-bold text-primary">{standing?.position}</div>
-                            <div className="text-sm text-muted-foreground">Posição</div>
+                            <div className="text-3xl font-bold">{standing?.position}</div>
+                            <div className="text-subtle">Posição</div>
                           </div>
                         </CardContent>
                       </Card>
-                      <Card>
-                        <CardContent className="pt-6">
+                      <Card className="clean-card">
+                        <CardContent className="p-6">
                           <div className="text-center">
-                            <div className="text-3xl font-bold text-primary">{standing?.points}</div>
-                            <div className="text-sm text-muted-foreground">Pontos</div>
+                            <div className="text-3xl font-bold">{standing?.points}</div>
+                            <div className="text-subtle">Pontos</div>
                           </div>
                         </CardContent>
                       </Card>
                     </div>
 
                     <div className="grid grid-cols-3 gap-4">
-                      <Card>
-                        <CardContent className="pt-6">
+                      <Card className="clean-card">
+                        <CardContent className="p-4">
                           <div className="text-center">
-                            <div className="text-2xl font-bold">{standing?.wins}</div>
-                            <div className="text-sm text-muted-foreground">Vitórias</div>
+                            <div className="text-2xl font-bold text-yellow-600">{standing?.wins}</div>
+                            <div className="text-subtle">Vitórias</div>
                           </div>
                         </CardContent>
                       </Card>
-                      <Card>
-                        <CardContent className="pt-6">
+                      <Card className="clean-card">
+                        <CardContent className="p-4">
                           <div className="text-center">
-                            <div className="text-2xl font-bold">{standing?.podiums}</div>
-                            <div className="text-sm text-muted-foreground">Pódios</div>
+                            <div className="text-2xl font-bold accent-green">{standing?.podiums}</div>
+                            <div className="text-subtle">Pódios</div>
                           </div>
                         </CardContent>
                       </Card>
-                      <Card>
-                        <CardContent className="pt-6">
+                      <Card className="clean-card">
+                        <CardContent className="p-4">
                           <div className="text-center">
-                            <div className="text-2xl font-bold">{standing?.fastestLaps}</div>
-                            <div className="text-sm text-muted-foreground">V. Rápidas</div>
+                            <div className="text-2xl font-bold accent-purple">{standing?.fastestLaps}</div>
+                            <div className="text-subtle">V. Rápidas</div>
                           </div>
                         </CardContent>
                       </Card>
                     </div>
 
                     {form.length > 0 && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Últimas Corridas</CardTitle>
+                      <Card className="clean-card">
+                        <CardHeader className="pb-4">
+                          <CardTitle className="font-semibold">Últimas Corridas</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                          <div className="flex gap-2">
+                        <CardContent className="pb-4">
+                          <div className="flex gap-3 justify-center">
                             {form.map((position, index) => (
                               <div
                                 key={index}
-                                className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${getFormColor(
+                                className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${getFormColor(
                                   position,
                                 )}`}
                               >

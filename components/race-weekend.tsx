@@ -10,6 +10,7 @@ import type { Race } from "@/lib/stock-car-data"
 import { QualifyingSessionComponent } from "./qualifying-session"
 import { RaceSessionComponent } from "./race-session"
 import type { QualifyingWeekend } from "@/lib/qualifying-simulation"
+import { DRIVERS, TEAMS } from "@/lib/stock-car-data"
 
 interface RaceWeekendProps {
   race1: Race
@@ -37,11 +38,9 @@ export function RaceWeekend({ race1, race2, onWeekendComplete, onBack }: RaceWee
   const handleRace2Complete = (results: any) => {
     setRace2Results(results)
     setCurrentPhase("complete")
-    
-    // Update races with results
-    const updatedRace1 = { ...race1, completed: true, results: race1Results.results, qualifying }
+
+    const updatedRace1 = { ...race1, completed: true, results: race1Results?.results ?? [], qualifying }
     const updatedRace2 = { ...race2, completed: true, results: results.results }
-    
     onWeekendComplete(updatedRace1, updatedRace2)
   }
 
@@ -73,7 +72,7 @@ export function RaceWeekend({ race1, race2, onWeekendComplete, onBack }: RaceWee
             <Button variant="outline" onClick={onBack} className="border-2 border-black">
               ← Voltar
             </Button>
-            
+
             <div className="text-center">
               <div className="flex items-center justify-center gap-3 mb-2">
                 <div className="text-4xl">{race1.flag}</div>
@@ -82,14 +81,14 @@ export function RaceWeekend({ race1, race2, onWeekendComplete, onBack }: RaceWee
                   <p className="text-lg text-muted-foreground">{race1.track}</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center justify-center gap-6 text-sm">
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  <span>{new Date(race1.date).toLocaleDateString('pt-BR', { 
-                    weekday: 'long', 
-                    day: 'numeric', 
-                    month: 'long' 
+                  <span>{new Date(race1.date).toLocaleDateString('pt-BR', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long'
                   })}</span>
                 </div>
                 <div className="flex items-center gap-1">
@@ -128,28 +127,25 @@ export function RaceWeekend({ race1, race2, onWeekendComplete, onBack }: RaceWee
               ].map((phase, index) => {
                 const status = getPhaseStatus(phase.key)
                 const Icon = phase.icon
-                
+
                 return (
                   <div key={phase.key} className="flex items-center">
                     <div className="flex flex-col items-center">
-                      <div className={`w-16 h-16 rounded-full border-4 flex items-center justify-center transition-all ${
-                        status === "completed" ? "bg-green-500 border-green-600 text-white" :
-                        status === "current" ? "bg-black border-black text-white animate-pulse" :
-                        "bg-white border-gray-300 text-gray-400"
-                      }`}>
+                      <div className={`w-16 h-16 rounded-full border-4 flex items-center justify-center transition-all ${status === "completed" ? "bg-green-500 border-green-600 text-white" :
+                          status === "current" ? "bg-black border-black text-white animate-pulse" :
+                            "bg-white border-gray-300 text-gray-400"
+                        }`}>
                         <Icon className="h-8 w-8" />
                       </div>
-                      <span className={`mt-2 font-bold text-sm ${
-                        status === "current" ? "text-black" : "text-muted-foreground"
-                      }`}>
+                      <span className={`mt-2 font-bold text-sm ${status === "current" ? "text-black" : "text-muted-foreground"
+                        }`}>
                         {phase.label}
                       </span>
                     </div>
-                    
+
                     {index < 2 && (
-                      <div className={`w-24 h-1 mx-4 ${
-                        getPhaseStatus(["race1", "race2"][index]) !== "upcoming" ? "bg-black" : "bg-gray-300"
-                      }`} />
+                      <div className={`w-24 h-1 mx-4 ${getPhaseStatus(["race1", "race2"][index]) !== "upcoming" ? "bg-black" : "bg-gray-300"
+                        }`} />
                     )}
                   </div>
                 )
@@ -183,7 +179,11 @@ export function RaceWeekend({ race1, race2, onWeekendComplete, onBack }: RaceWee
           <RaceSessionComponent
             race={race2}
             startingGrid={race1Results.results.filter((r: any) => !r.dnf).slice(0, 10).reverse().concat(
-              race1Results.results.filter((r: any) => !r.dnf).slice(10)
+              (race1Results?.results ?? [])
+                .filter((r: any) => !r.dnf)
+                .slice(0, 10)
+                .reverse()
+                .concat((race1Results?.results ?? []).filter((r: any) => !r.dnf).slice(10))
             ).map((result: any, index: number) => ({
               position: index + 1,
               driverId: result.driverId,
@@ -211,7 +211,7 @@ export function RaceWeekend({ race1, race2, onWeekendComplete, onBack }: RaceWee
                 <p className="text-lg text-muted-foreground mb-6">
                   Classificação e duas corridas foram concluídas com sucesso.
                 </p>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                   <Card className="border-2 border-green-500">
                     <CardHeader className="bg-green-500 text-white">
@@ -220,10 +220,22 @@ export function RaceWeekend({ race1, race2, onWeekendComplete, onBack }: RaceWee
                     <CardContent className="pt-4">
                       <div className="text-center">
                         <div className="text-2xl font-bold">
-                          {DRIVERS.find(d => d.id === race1Results?.results[0]?.driverId)?.name}
+                          {race1Results?.results?.[0]
+                            ? (
+                              <>
+                                {DRIVERS.find(d => d.id === race1Results.results[0].driverId)?.name}
+                              </>
+                            )
+                            : "N/A"}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {TEAMS.find(t => t.id === race1Results?.results[0]?.teamId)?.name}
+                          {race1Results?.results?.[0]
+                            ? (
+                              <>
+                                {TEAMS.find(t => t.id === race1Results.results[0].teamId)?.name}
+                              </>
+                            )
+                            : "N/A"}
                         </div>
                       </div>
                     </CardContent>
@@ -236,10 +248,22 @@ export function RaceWeekend({ race1, race2, onWeekendComplete, onBack }: RaceWee
                     <CardContent className="pt-4">
                       <div className="text-center">
                         <div className="text-2xl font-bold">
-                          {DRIVERS.find(d => d.id === race2Results?.results[0]?.driverId)?.name}
+                          {race2Results?.results?.[0]
+                            ? (
+                              <>
+                                {DRIVERS.find(d => d.id === race2Results.results[0].driverId)?.name}
+                              </>
+                            )
+                            : "N/A"}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {TEAMS.find(t => t.id === race2Results?.results[0]?.teamId)?.name}
+                          {race2Results?.results?.[0]
+                            ? (
+                              <>
+                                {TEAMS.find(t => t.id === race2Results.results[0].teamId)?.name}
+                              </>
+                            )
+                            : "N/A"}
                         </div>
                       </div>
                     </CardContent>
