@@ -378,7 +378,6 @@ export class RaceSimulator {
       results[fastestLapIndex].points += 1 // Bonus point for fastest lap
     }
 
-    // No final, retorna apenas o array de resultados
     return results
   }
 

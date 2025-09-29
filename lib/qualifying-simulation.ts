@@ -12,6 +12,18 @@ export interface QualifyingSession {
   polePosition?: QualifyingResult // Added to track pole position per session
 }
 
+export interface QualifyingSession {
+  id: string
+  type: "Q1" | "Q2" | "Q3"
+  participants: string[] // driver IDs
+  results: QualifyingResult[]
+  qualified: string[] // drivers advancing to next session
+  eliminated: string[] // drivers eliminated in this session
+  weather: "sunny" | "cloudy" | "rainy"
+  completed: boolean
+  polePosition?: QualifyingResult // Added to track pole position per session
+}
+
 export interface QualifyingResult {
   position: number
   driverId: string
@@ -170,6 +182,91 @@ export class QualifyingSimulator {
     qualifying.completed = true
 
     return qualifying
+  }
+
+  simulateSession(sessionType: "Q1" | "Q2" | "Q3", driverIds: string[], weather: "sunny" | "cloudy" | "rainy"): QualifyingResult[] {
+    const results: QualifyingResult[] = []
+    
+    // Create more varied performance by adding track-specific factors
+    const trackFactor = Math.random() * 0.3 + 0.85 // 0.85-1.15 multiplier
+
+    driverIds.forEach(driverId => {
+      const driver = DRIVERS.find(d => d.id === driverId)!
+      const team = TEAMS.find(t => t.id === driver.teamId)!
+      const manufacturer = MANUFACTURERS.find(m => m.id === driver.manufacturerId)!
+
+      // Base lap time (around 1:10 for most tracks)
+      let baseTime = 70000 + Math.random() * 3000 // 70-73 seconds in milliseconds
+
+      // Driver skill impact (more varied)
+      const skillFactor = (100 - driver.skill) * (80 + Math.random() * 40) // 80-120 multiplier
+
+      // Team reputation impact (more significant)
+      const teamFactor = (100 - team.reputation) * (40 + Math.random() * 30) // 40-70 multiplier
+
+      // Manufacturer performance impact (track-dependent)
+      const manufacturerFactor = ((100 - (manufacturer?.performance ?? 50)) * (20 + Math.random() * 25) * trackFactor)
+
+      // Driver form factor (some drivers perform better on certain days)
+      const formFactor = (Math.random() - 0.5) * 2000 // ±1 second random form
+
+      // Setup factor (some teams nail the setup, others don't)
+      const setupFactor = (Math.random() - 0.5) * 1500 // ±0.75 second setup variation
+
+      // Weather impact
+      let weatherFactor = 0
+      if (weather === "rainy") {
+        weatherFactor = 4000 + (Math.random() * 4000) // 4-8 seconds slower
+        // Skilled drivers handle rain better
+        weatherFactor -= (driver.skill - 50) * (25 + Math.random() * 15) // More variation in rain skill
+      } else if (weather === "cloudy") {
+        weatherFactor = 300 + (Math.random() * 1200) // 0.3-1.5 seconds slower
+      }
+
+      // Session pressure (Q3 has more pressure)
+      let pressureFactor = 0
+      if (sessionType === "Q3") {
+        pressureFactor = (100 - driver.consistency) * (15 + Math.random() * 15) // 15-30 multiplier
+      } else if (sessionType === "Q2") {
+        pressureFactor = (100 - driver.consistency) * (8 + Math.random() * 8) // 8-16 multiplier
+      }
+
+      // Random factor for unpredictability (larger range)
+      const randomFactor = (Math.random() - 0.5) * 1800
+
+      const finalTime = Math.max(65000, 
+        baseTime + 
+        skillFactor + 
+        teamFactor + 
+        manufacturerFactor + 
+        weatherFactor + 
+        pressureFactor + 
+        randomFactor + 
+        formFactor + 
+        setupFactor
+      )
+
+      results.push({
+        position: 0, // Will be set after sorting
+        driverId,
+        lapTime: finalTime,
+        gap: 0, // Will be calculated after sorting
+        eliminated: false,
+        isCurrentSessionPole: false
+      })
+    })
+
+    // Sort by lap time
+    results.sort((a, b) => a.lapTime - b.lapTime)
+
+    // Set positions and gaps
+    const poleTime = results[0].lapTime
+    results.forEach((result, index) => {
+      result.position = index + 1
+      result.gap = result.lapTime - poleTime
+    })
+
+    return results
   }
 
   private simulateSession(sessionType: "Q1" | "Q2" | "Q3", driverIds: string[], weather: "sunny" | "cloudy" | "rainy"): QualifyingResult[] {

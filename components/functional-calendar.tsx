@@ -260,25 +260,16 @@ export function FunctionalCalendar({ season, onRaceComplete }: FunctionalCalenda
 
                     {/* Action Button */}
                     <div className="text-center">
-                      {canSimulate && (
-                        <Button 
-                          onClick={() => simulateWeekend(race1, race2)}
-                          className="clean-button px-6 py-3"
-                        >
-                          <Flag className="h-5 w-5 mr-3" />
-                          Simular Fim de Semana
-                        </Button>
-                      )}
                       {weekendComplete && (
                         <Badge className="px-4 py-2 bg-green-100 text-green-800 border border-green-200">
                           <CheckCircle className="h-5 w-5 mr-2" />
                           Fim de Semana Completo
                         </Badge>
                       )}
-                      {!canSimulate && !weekendComplete && (
+                      {!weekendComplete && (
                         <Badge className="px-4 py-2 bg-gray-100 text-gray-600 border border-gray-200">
-                          <Lock className="h-5 w-5 mr-2" />
-                          Aguardando
+                          <Flag className="h-5 w-5 mr-2" />
+                          Use "Simular Próxima" no Dashboard
                         </Badge>
                       )}
                     </div>

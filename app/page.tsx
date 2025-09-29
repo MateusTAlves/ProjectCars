@@ -23,6 +23,7 @@ import { EvolutionTest } from "@/components/evolution-test"
 import { TEAMS, DRIVERS } from "@/lib/stock-car-data"
 import Image from "next/image"
 import WelcomeScreen from "@/components/welcome-screen"
+import { QualifyingRaceWeekend } from "@/components/qualifying-race-weekend"
 
 export default function StockCarManager() {
   const [currentSeason, setCurrentSeason] = useState<Season | null>(null)
@@ -32,6 +33,7 @@ export default function StockCarManager() {
   const [gameStarted, setGameStarted] = useState(false)
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null)
   const [showTeamSelection, setShowTeamSelection] = useState(false)
+  const [showRaceWeekend, setShowRaceWeekend] = useState(false)
 
   useEffect(() => {
     // Initialize the game with the first season
@@ -99,8 +101,55 @@ export default function StockCarManager() {
     }
   }
 
+  const handleSimulateNext = () => {
+    setShowRaceWeekend(true)
+  }
+
+  const handleWeekendComplete = (race1: any, race2: any) => {
+    if (currentSeason) {
+      const updatedRaces = currentSeason.races.map(race => {
+        if (race.id === race1.id) return race1
+        if (race.id === race2.id) return race2
+        return race
+      })
+      
+      const updatedSeason = {
+        ...currentSeason,
+        races: updatedRaces,
+        completed: updatedRaces.every(r => r.completed)
+      }
+      
+      setCurrentSeason(updatedSeason)
+    }
+    setShowRaceWeekend(false)
+  }
+
   if (showTeamSelection) {
     return <TeamSelection onTeamSelected={handleTeamSelected} />
+  }
+
+  if (showRaceWeekend && currentSeason) {
+    const nextWeekend = (() => {
+      for (let i = 0; i < currentSeason.races.length; i += 2) {
+        const race1 = currentSeason.races[i]
+        const race2 = currentSeason.races[i + 1]
+        if (race1 && race2 && (!race1.completed || !race2.completed)) {
+          return { race1, race2 }
+        }
+      }
+      return null
+    })()
+    
+    if (nextWeekend) {
+      return (
+        <QualifyingRaceWeekend
+          race1={nextWeekend.race1}
+          race2={nextWeekend.race2}
+          onWeekendComplete={handleWeekendComplete}
+          onBack={() => setShowRaceWeekend(false)}
+        />
+      )
+    }
   }
 
   if (!gameStarted) {
@@ -208,7 +257,7 @@ export default function StockCarManager() {
               season={currentSeason}
               onStartNewSeason={startNewSeason}
               onSimulateFullSeason={simulateFullSeason}
-              onSimulateNextRace={simulateNextRace}
+              onSimulateNextRace={handleSimulateNext}
               teamColor={teamPrimaryColor}
             />
           </TabsContent>
