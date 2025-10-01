@@ -413,7 +413,7 @@ function DashboardOverview({
                   Simule o próximo fim de semana de corrida
                 </p>
                 <Button
-                  onClick={handleSimulateNext}
+                  onClick={onSimulateNextRace}
                   className="clean-button"
                   disabled={!nextWeekend}
                 >

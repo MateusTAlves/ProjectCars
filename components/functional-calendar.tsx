@@ -269,7 +269,7 @@ export function FunctionalCalendar({ season, onRaceComplete }: FunctionalCalenda
                       {!weekendComplete && (
                         <Badge className="px-4 py-2 bg-gray-100 text-gray-600 border border-gray-200">
                           <Flag className="h-5 w-5 mr-2" />
-                          Aguardando simulação
+                          Use "Simular Próxima" no Dashboard
                         </Badge>
                       )}
                     </div>
