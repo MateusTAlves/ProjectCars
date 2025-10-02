@@ -101,7 +101,8 @@ export default function StockCarManager() {
     }
   }
 
-  const handleSimulateNext = () => {
+  const handleSimulateNext = (mode: "quick" | "complete" = "quick") => {
+    setWeekendMode(mode)
     setShowRaceWeekend(true)
   }
 
@@ -112,16 +113,17 @@ export default function StockCarManager() {
         if (race.id === race2.id) return race2
         return race
       })
-      
+
       const updatedSeason = {
         ...currentSeason,
         races: updatedRaces,
         completed: updatedRaces.every(r => r.completed)
       }
-      
+
       setCurrentSeason(updatedSeason)
     }
     setShowRaceWeekend(false)
+    setWeekendMode(null)
   }
 
   if (showTeamSelection) {
