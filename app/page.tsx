@@ -139,14 +139,31 @@ export default function StockCarManager() {
       }
       return null
     })()
-    
+
     if (nextWeekend) {
+      if (weekendMode === "complete") {
+        return (
+          <CompleteWeekend
+            race1={nextWeekend.race1}
+            race2={nextWeekend.race2}
+            onWeekendComplete={handleWeekendComplete}
+            onBack={() => {
+              setShowRaceWeekend(false)
+              setWeekendMode(null)
+            }}
+          />
+        )
+      }
+
       return (
         <QualifyingRaceWeekend
           race1={nextWeekend.race1}
           race2={nextWeekend.race2}
           onWeekendComplete={handleWeekendComplete}
-          onBack={() => setShowRaceWeekend(false)}
+          onBack={() => {
+            setShowRaceWeekend(false)
+            setWeekendMode(null)
+          }}
         />
       )
     }
@@ -399,26 +416,50 @@ function DashboardOverview({
       </div>
 
       {!season.completed && completedWeekends < totalWeekends && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="clean-card hover-lift">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="clean-card hover-lift border-2 border-blue-200">
             <CardContent className="p-8">
               <div className="text-center">
                 <div className="flex items-center justify-center mb-4">
-                  <div className="p-4 rounded-full bg-primary text-primary-foreground">
+                  <div className="p-4 rounded-full bg-blue-500 text-white">
                     <Play className="h-8 w-8" />
                   </div>
                 </div>
-                <h3 className="title-small mb-3">Próxima Corrida</h3>
+                <h3 className="title-small mb-3">Modo Rápido</h3>
                 <p className="text-muted-foreground mb-6">
-                  Simule o próximo fim de semana de corrida
+                  Classificação + 2 Corridas
                 </p>
                 <Button
-                  onClick={onSimulateNextRace}
-                  className="clean-button"
+                  onClick={() => onSimulateNextRace("quick")}
+                  className="clean-button w-full"
                   disabled={!nextWeekend}
                 >
-                  <Play className="h-5 w-5 mr-3" />
-                  Simular Próxima
+                  <Play className="h-5 w-5 mr-2" />
+                  Iniciar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="clean-card hover-lift border-2 border-purple-200">
+            <CardContent className="p-8">
+              <div className="text-center">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="p-4 rounded-full bg-purple-500 text-white">
+                    <Calendar className="h-8 w-8" />
+                  </div>
+                </div>
+                <h3 className="title-small mb-3">Fim de Semana Completo</h3>
+                <p className="text-muted-foreground mb-6">
+                  Treinos + Classificação + Corridas
+                </p>
+                <Button
+                  onClick={() => onSimulateNextRace("complete")}
+                  className="clean-button w-full bg-purple-600 hover:bg-purple-700"
+                  disabled={!nextWeekend}
+                >
+                  <Calendar className="h-5 w-5 mr-2" />
+                  Iniciar
                 </Button>
               </div>
             </CardContent>
@@ -434,13 +475,13 @@ function DashboardOverview({
                 </div>
                 <h3 className="title-small mb-3">Temporada Completa</h3>
                 <p className="text-muted-foreground mb-6">
-                  Simule todos os {totalWeekends - completedWeekends} fins de semana restantes
+                  Simular {totalWeekends - completedWeekends} fins de semana
                 </p>
                 <Button
                   onClick={onSimulateFullSeason}
-                  className="clean-button"
+                  className="clean-button w-full"
                 >
-                  <Play className="h-5 w-5 mr-3" />
+                  <Trophy className="h-5 w-5 mr-2" />
                   Simular Tudo
                 </Button>
               </div>
