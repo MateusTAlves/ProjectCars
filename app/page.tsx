@@ -34,6 +34,7 @@ export default function StockCarManager() {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null)
   const [showTeamSelection, setShowTeamSelection] = useState(false)
   const [showRaceWeekend, setShowRaceWeekend] = useState(false)
+  const [weekendMode, setWeekendMode] = useState<"quick" | "complete" | null>(null)
 
   useEffect(() => {
     // Initialize the game with the first season
