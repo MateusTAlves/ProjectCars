@@ -25,6 +25,7 @@ import Image from "next/image"
 import WelcomeScreen from "@/components/welcome-screen"
 import { QualifyingRaceWeekend } from "@/components/qualifying-race-weekend"
 import { CompleteWeekend } from "@/components/unified-race-weekend"
+import { CompleteRaceWeekend } from "@/components/complete-race-weekend"
 
 export default function StockCarManager() {
   const [currentSeason, setCurrentSeason] = useState<Season | null>(null)
@@ -147,7 +148,7 @@ export default function StockCarManager() {
     if (nextWeekend) {
       if (weekendMode === "complete") {
         return (
-          <CompleteWeekend
+          <CompleteRaceWeekend
             race1={nextWeekend.race1}
             race2={nextWeekend.race2}
             onWeekendComplete={handleWeekendComplete}
