@@ -997,3 +997,5 @@ export function UnifiedRaceWeekend({
     </div>
   )
 }
+
+export { UnifiedRaceWeekend as CompleteWeekend }

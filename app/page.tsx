@@ -24,6 +24,7 @@ import { TEAMS, DRIVERS } from "@/lib/stock-car-data"
 import Image from "next/image"
 import WelcomeScreen from "@/components/welcome-screen"
 import { QualifyingRaceWeekend } from "@/components/qualifying-race-weekend"
+import { CompleteWeekend } from "@/components/unified-race-weekend"
 
 export default function StockCarManager() {
   const [currentSeason, setCurrentSeason] = useState<Season | null>(null)
