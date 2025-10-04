@@ -5,10 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Play, CheckCircle, Clock, Timer, Flag, Trophy,
-  ChevronRight, Zap, ArrowLeft, Target
-} from "lucide-react"
+import { Play, CircleCheck as CheckCircle, Clock, Timer, Flag, Trophy, ChevronRight, Zap, ArrowLeft, Target } from "lucide-react"
 import type { Race } from "@/lib/stock-car-data"
 import { DRIVERS, TEAMS, MANUFACTURERS } from "@/lib/stock-car-data"
 import { PracticeSimulator, type PracticeSession } from "@/lib/practice-simulation"
