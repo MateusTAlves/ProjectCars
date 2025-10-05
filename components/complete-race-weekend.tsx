@@ -1,16 +1,32 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Play, CircleCheck as CheckCircle, Clock, Timer, Flag, Trophy, ChevronRight, Zap, ArrowLeft, Target } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { Progress } from "@/components/ui/progress"
+import {
+  Play, Pause, SkipForward, Clock, Timer, Flag, Trophy, ArrowLeft,
+  Settings, Zap, Target, TrendingUp, CircleCheck, Wrench, Fuel, Gauge
+} from "lucide-react"
 import type { Race } from "@/lib/stock-car-data"
 import { DRIVERS, TEAMS, MANUFACTURERS } from "@/lib/stock-car-data"
-import { PracticeSimulator, type PracticeSession } from "@/lib/practice-simulation"
-import { QualifyingSimulator, type QualifyingWeekend } from "@/lib/qualifying-simulation"
-import { RaceSimulator, type RaceSimulationData } from "@/lib/race-simulation"
+import { AdvancedPracticeSimulator } from "@/lib/advanced-practice-simulator"
+import { AdvancedQualifyingSimulator } from "@/lib/advanced-qualifying-simulator"
+import { AdvancedRaceSimulator } from "@/lib/advanced-race-simulator"
+import type {
+  WeekendState,
+  PracticeSession,
+  PracticeStrategy,
+  QualifyingSession,
+  QualifyingStrategy,
+  RaceSession,
+  TyreType,
+  FuelLoad,
+} from "@/lib/advanced-weekend-types"
+import { TYRE_COMPOUNDS } from "@/lib/advanced-weekend-types"
 import Image from "next/image"
 
 interface CompleteRaceWeekendProps {
@@ -20,413 +36,343 @@ interface CompleteRaceWeekendProps {
   onBack: () => void
 }
 
-type WeekendPhase = "fp1" | "fp2" | "fp3" | "qualifying" | "race1" | "race2" | "complete"
-
 export function CompleteRaceWeekend({
   race1,
   race2,
   onWeekendComplete,
   onBack,
 }: CompleteRaceWeekendProps) {
-  const [currentPhase, setCurrentPhase] = useState<WeekendPhase>("fp1")
-  const [fp1Session, setFp1Session] = useState<PracticeSession | null>(null)
-  const [fp2Session, setFp2Session] = useState<PracticeSession | null>(null)
-  const [fp3Session, setFp3Session] = useState<PracticeSession | null>(null)
-  const [qualifying, setQualifying] = useState<QualifyingWeekend | null>(null)
-  const [race1Results, setRace1Results] = useState<RaceSimulationData | null>(null)
-  const [race2Results, setRace2Results] = useState<RaceSimulationData | null>(null)
-  const [isSimulating, setIsSimulating] = useState(false)
-  const [progress, setProgress] = useState(0)
+  const [practiceSimulator] = useState(() => new AdvancedPracticeSimulator())
+  const [qualifyingSimulator] = useState(() => new AdvancedQualifyingSimulator())
+  const [raceSimulator] = useState(() => new AdvancedRaceSimulator())
 
-  const [practiceSimulator] = useState(() => new PracticeSimulator())
-  const [qualifyingSimulator] = useState(() => new QualifyingSimulator())
-  const [raceSimulator] = useState(() => new RaceSimulator())
+  const [weekendState, setWeekendState] = useState<WeekendState>({
+    raceWeekendId: `weekend-${race1.id}`,
+    race1,
+    race2,
+    currentPhase: "fp1",
+    qualifyingGrid: [],
+    playerTeamId: TEAMS[0].id,
+    playerDriverId: DRIVERS.filter(d => d.active)[0].id,
+    autoMode: false,
+    showDetailedTiming: false,
+  })
 
-  const simulatePractice = async (sessionType: "FP1" | "FP2" | "FP3") => {
-    setIsSimulating(true)
-    setProgress(0)
+  const [selectedTyre, setSelectedTyre] = useState<TyreType>("medium")
+  const [selectedFuel, setSelectedFuel] = useState<FuelLoad>("medium")
+  const [raceSpeed, setRaceSpeed] = useState<1 | 2 | 4 | 8>(1)
 
-    for (let i = 0; i <= 100; i += 10) {
-      setProgress(i)
-      await new Promise((resolve) => setTimeout(resolve, 150))
-    }
-
-    const session = practiceSimulator.simulatePracticeSession(sessionType, race1.weather)
-
-    if (sessionType === "FP1") {
-      setFp1Session(session)
-      setCurrentPhase("fp2")
-    } else if (sessionType === "FP2") {
-      setFp2Session(session)
-      setCurrentPhase("fp3")
-    } else if (sessionType === "FP3") {
-      setFp3Session(session)
-      setCurrentPhase("qualifying")
-    }
-
-    setIsSimulating(false)
+  // ========== TREINO LIVRE ==========
+  const startFP1 = () => {
+    const session = practiceSimulator.createPracticeSession("FP1", race1.weather)
+    setWeekendState(prev => ({ ...prev, fp1: session }))
   }
 
-  const simulateQualifying = async () => {
-    setIsSimulating(true)
-    setProgress(0)
-
-    for (let i = 0; i <= 100; i += 10) {
-      setProgress(i)
-      await new Promise((resolve) => setTimeout(resolve, 200))
-    }
-
-    const qualifyingResult = qualifyingSimulator.simulateQualifying(race1.id, race1.weather)
-    setQualifying(qualifyingResult)
-    setIsSimulating(false)
-    setCurrentPhase("race1")
+  const simulateFP1Auto = () => {
+    if (!weekendState.fp1) return
+    const completedSession = practiceSimulator.autoSimulateSession(weekendState.fp1)
+    setWeekendState(prev => ({ ...prev, fp1: completedSession }))
   }
 
-  const simulateRace1 = async () => {
-    if (!qualifying) return
-
-    setIsSimulating(true)
-    setProgress(0)
-
-    for (let i = 0; i <= 100; i += 5) {
-      setProgress(i)
-      await new Promise((resolve) => setTimeout(resolve, 100))
-    }
-
-    const raceSimulation = raceSimulator.simulateRace(race1, qualifying.finalGrid, "main")
-    setRace1Results(raceSimulation)
-    setIsSimulating(false)
-    setCurrentPhase("race2")
+  const completeFP1 = () => {
+    setWeekendState(prev => ({ ...prev, currentPhase: "fp2" }))
   }
 
-  const simulateRace2 = async () => {
-    if (!race1Results) return
-
-    setIsSimulating(true)
-    setProgress(0)
-
-    const race1Grid = [
-      ...race1Results.results.filter((r) => !r.dnf).slice(0, 10).reverse(),
-      ...race1Results.results.filter((r) => !r.dnf).slice(10),
-    ].map((result, index) => ({
-      position: index + 1,
-      driverId: result.driverId,
-      lapTime: 70000,
-      gap: 0,
-      eliminated: false,
-    }))
-
-    for (let i = 0; i <= 100; i += 5) {
-      setProgress(i)
-      await new Promise((resolve) => setTimeout(resolve, 100))
-    }
-
-    const raceSimulation = raceSimulator.simulateRace(race2, race1Grid, "inverted")
-    setRace2Results(raceSimulation)
-    setIsSimulating(false)
-    setCurrentPhase("complete")
-
-    const updatedRace1 = { ...race1, completed: true, results: race1Results.results, qualifying }
-    const updatedRace2 = { ...race2, completed: true, results: raceSimulation.results }
-    onWeekendComplete(updatedRace1, updatedRace2)
+  const startFP2 = () => {
+    const session = practiceSimulator.createPracticeSession("FP2", race1.weather)
+    setWeekendState(prev => ({ ...prev, fp2: session }))
   }
 
-  const getPhaseStatus = (phase: WeekendPhase) => {
-    const phases: WeekendPhase[] = ["fp1", "fp2", "fp3", "qualifying", "race1", "race2", "complete"]
-    const currentIndex = phases.indexOf(currentPhase)
-    const phaseIndex = phases.indexOf(phase)
-
-    if (phaseIndex < currentIndex) return "completed"
-    if (phaseIndex === currentIndex) return "current"
-    return "upcoming"
+  const simulateFP2Auto = () => {
+    if (!weekendState.fp2) return
+    const completedSession = practiceSimulator.autoSimulateSession(weekendState.fp2)
+    setWeekendState(prev => ({ ...prev, fp2: completedSession }))
   }
 
-  const getWeatherIcon = (weather: string) => {
-    switch (weather) {
-      case "sunny": return "☀️"
-      case "cloudy": return "☁️"
-      case "rainy": return "🌧️"
-      default: return "☀️"
+  const completeFP2 = () => {
+    setWeekendState(prev => ({ ...prev, currentPhase: "qualifying", currentSubPhase: "q1" }))
+  }
+
+  const runPracticeLaps = () => {
+    const currentSession = weekendState.currentPhase === "fp1" ? weekendState.fp1 : weekendState.fp2
+    if (!currentSession) return
+
+    const strategy: PracticeStrategy = {
+      driverId: weekendState.playerDriverId,
+      tyre: selectedTyre,
+      fuel: selectedFuel,
+      setupFocus: "speed"
     }
+
+    const updatedSession = practiceSimulator.simulateMultipleLaps(currentSession, strategy, 5)
+
+    if (weekendState.currentPhase === "fp1") {
+      setWeekendState(prev => ({ ...prev, fp1: updatedSession }))
+    } else {
+      setWeekendState(prev => ({ ...prev, fp2: updatedSession }))
+    }
+  }
+
+  // ========== CLASSIFICAÇÃO ==========
+  const startQ1 = () => {
+    const activeDrivers = DRIVERS.filter(d => d.active).map(d => d.id)
+    const session = qualifyingSimulator.createQualifyingSession("Q1", activeDrivers, race1.weather)
+    setWeekendState(prev => ({ ...prev, q1: session }))
+  }
+
+  const simulateQ1Auto = () => {
+    if (!weekendState.q1) return
+    const completedSession = qualifyingSimulator.autoSimulateSession(weekendState.q1)
+    setWeekendState(prev => ({ ...prev, q1: completedSession, currentSubPhase: "q2" }))
+  }
+
+  const startQ2 = () => {
+    if (!weekendState.q1) return
+    const session = qualifyingSimulator.createQualifyingSession("Q2", weekendState.q1.qualified, race1.weather)
+    setWeekendState(prev => ({ ...prev, q2: session }))
+  }
+
+  const simulateQ2Auto = () => {
+    if (!weekendState.q2) return
+    const completedSession = qualifyingSimulator.autoSimulateSession(weekendState.q2)
+    setWeekendState(prev => ({ ...prev, q2: completedSession, currentSubPhase: "q3" }))
+  }
+
+  const startQ3 = () => {
+    if (!weekendState.q2) return
+    const session = qualifyingSimulator.createQualifyingSession("Q3", weekendState.q2.qualified, race1.weather)
+    setWeekendState(prev => ({ ...prev, q3: session }))
+  }
+
+  const simulateQ3Auto = () => {
+    if (!weekendState.q3) return
+    const completedSession = qualifyingSimulator.autoSimulateSession(weekendState.q3)
+
+    if (weekendState.q1 && weekendState.q2) {
+      const finalGrid = qualifyingSimulator.buildFinalGrid(weekendState.q1, weekendState.q2, completedSession)
+      setWeekendState(prev => ({
+        ...prev,
+        q3: completedSession,
+        qualifyingGrid: finalGrid,
+        currentPhase: "race1"
+      }))
+    }
+  }
+
+  // ========== CORRIDAS ==========
+  const startRace1 = () => {
+    const session = raceSimulator.createRaceSession(1, weekendState.qualifyingGrid, race1.laps, race1.weather, true)
+    setWeekendState(prev => ({ ...prev, race1Session: session }))
+  }
+
+  const simulateRace1 = () => {
+    if (!weekendState.race1Session) return
+
+    let session = { ...weekendState.race1Session, isActive: true }
+
+    const interval = setInterval(() => {
+      if (session.currentLap >= session.totalLaps) {
+        clearInterval(interval)
+        const results = raceSimulator.finalizeRace(session)
+        setWeekendState(prev => ({
+          ...prev,
+          race1Session: { ...session, isActive: false },
+          race1Results: results,
+          currentPhase: "race2"
+        }))
+        return
+      }
+
+      session = raceSimulator.simulateLap(session)
+      setWeekendState(prev => ({ ...prev, race1Session: session }))
+    }, 1000 / raceSpeed)
+  }
+
+  const startRace2 = () => {
+    const session = raceSimulator.createRaceSession(2, weekendState.qualifyingGrid, race2.laps, race2.weather, false)
+    setWeekendState(prev => ({ ...prev, race2Session: session }))
+  }
+
+  const simulateRace2 = () => {
+    if (!weekendState.race2Session) return
+
+    let session = { ...weekendState.race2Session, isActive: true }
+
+    const interval = setInterval(() => {
+      if (session.currentLap >= session.totalLaps) {
+        clearInterval(interval)
+        const results = raceSimulator.finalizeRace(session)
+        setWeekendState(prev => ({
+          ...prev,
+          race2Session: { ...session, isActive: false },
+          race2Results: results,
+          currentPhase: "complete"
+        }))
+
+        // Complete weekend
+        const updatedRace1 = { ...race1, completed: true, results: weekendState.race1Results || [] }
+        const updatedRace2 = { ...race2, completed: true, results: results }
+        onWeekendComplete(updatedRace1, updatedRace2)
+        return
+      }
+
+      session = raceSimulator.simulateLap(session)
+      setWeekendState(prev => ({ ...prev, race2Session: session }))
+    }, 1000 / raceSpeed)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-50">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              onClick={onBack}
-              className="flex items-center gap-2 hover:bg-slate-100 rounded-xl px-4 py-2"
-            >
+            <Button variant="ghost" onClick={onBack} className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              <span className="font-medium">Voltar</span>
+              Voltar ao Menu
             </Button>
 
             <div className="text-center">
-              <div className="flex items-center justify-center gap-3 mb-1">
-                <div className="text-3xl">{race1.flag}</div>
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-3xl">{race1.flag}</span>
                 <div>
                   <h1 className="text-2xl font-bold text-slate-900">GP {race1.location}</h1>
-                  <p className="text-sm text-slate-600">{race1.track} • {race1.state}</p>
+                  <p className="text-sm text-slate-600">{race1.track}</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full">
-                <span className="text-lg">{getWeatherIcon(race1.weather)}</span>
-                <span className="text-sm font-medium capitalize">{race1.weather}</span>
-              </div>
-            </div>
+            <Badge variant="outline" className="text-lg px-4 py-2">
+              {weekendState.currentPhase.toUpperCase()}
+            </Badge>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Progress Timeline */}
-      <div className="container mx-auto px-6 py-8">
-        <Card className="mb-8">
+      {/* Progress Bar */}
+      <div className="container mx-auto px-6 py-6">
+        <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between overflow-x-auto pb-2">
-              {[
-                { key: "fp1" as WeekendPhase, label: "FP1", icon: Clock },
-                { key: "fp2" as WeekendPhase, label: "FP2", icon: Clock },
-                { key: "fp3" as WeekendPhase, label: "FP3", icon: Clock },
-                { key: "qualifying" as WeekendPhase, label: "Quali", icon: Timer },
-                { key: "race1" as WeekendPhase, label: "R1", icon: Flag },
-                { key: "race2" as WeekendPhase, label: "R2", icon: Trophy },
-              ].map((phase, index) => {
-                const status = getPhaseStatus(phase.key)
-                const Icon = phase.icon
-
-                return (
-                  <div key={phase.key} className="flex items-center">
-                    <div className="flex flex-col items-center min-w-[80px]">
-                      <div
-                        className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
-                          status === "completed"
-                            ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25"
-                            : status === "current"
-                            ? "bg-blue-500 text-white shadow-lg shadow-blue-500/25 scale-110"
-                            : "bg-slate-200 text-slate-400"
-                        }`}
-                      >
-                        {status === "completed" ? (
-                          <CheckCircle className="h-6 w-6" />
-                        ) : (
-                          <Icon className="h-6 w-6" />
-                        )}
-                      </div>
-                      <span
-                        className={`mt-2 text-sm font-medium ${
-                          status === "current"
-                            ? "text-blue-600"
-                            : status === "completed"
-                            ? "text-emerald-600"
-                            : "text-slate-400"
-                        }`}
-                      >
-                        {phase.label}
-                      </span>
+            <div className="flex items-center justify-between mb-4">
+              {["FP1", "FP2", "Quali", "R1", "R2"].map((phase, idx) => (
+                <div key={phase} className="flex items-center">
+                  <div className={`flex flex-col items-center ${
+                    idx === 0 && weekendState.currentPhase === "fp1" ||
+                    idx === 1 && weekendState.currentPhase === "fp2" ||
+                    idx === 2 && weekendState.currentPhase === "qualifying" ||
+                    idx === 3 && weekendState.currentPhase === "race1" ||
+                    idx === 4 && weekendState.currentPhase === "race2"
+                    ? "text-blue-600" : "text-slate-400"
+                  }`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
+                      idx === 0 && weekendState.currentPhase === "fp1" ||
+                      idx === 1 && weekendState.currentPhase === "fp2" ||
+                      idx === 2 && weekendState.currentPhase === "qualifying" ||
+                      idx === 3 && weekendState.currentPhase === "race1" ||
+                      idx === 4 && weekendState.currentPhase === "race2"
+                      ? "bg-blue-500 text-white" : "bg-slate-200"
+                    }`}>
+                      {phase}
                     </div>
-
-                    {index < 5 && (
-                      <ChevronRight
-                        className={`h-5 w-5 mx-2 transition-colors ${
-                          status === "completed" ? "text-emerald-500" : "text-slate-300"
-                        }`}
-                      />
-                    )}
+                    <span className="text-xs mt-1">{phase}</span>
                   </div>
-                )
-              })}
+                  {idx < 4 && <div className="w-12 h-1 bg-slate-200 mx-2" />}
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
 
-        {/* Simulation Progress */}
-        {isSimulating && (
-          <Card className="mb-6">
-            <CardContent className="pt-6">
-              <Progress value={progress} className="mb-2" />
-              <p className="text-center text-sm text-muted-foreground">
-                Simulando {currentPhase.toUpperCase()}...
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Main Content */}
-        <div className="space-y-6">
-          {/* FP1 Section */}
-          {currentPhase === "fp1" && (
-            <PracticeSessionCard
-              title="Treino Livre 1"
-              subtitle="Primeira sessão de treinos - Reconhecimento da pista"
-              session={fp1Session}
-              onSimulate={() => simulatePractice("FP1")}
-              isSimulating={isSimulating}
-              color="blue"
+        <div className="mt-6 space-y-6">
+          {/* FP1 */}
+          {weekendState.currentPhase === "fp1" && (
+            <PracticeSessionView
+              title="Treino Livre 1 - Sexta-feira"
+              subtitle="60 minutos de teste e coleta de dados"
+              session={weekendState.fp1}
+              onStart={startFP1}
+              onSimulate={simulateFP1Auto}
+              onComplete={completeFP1}
+              onRunLaps={runPracticeLaps}
+              selectedTyre={selectedTyre}
+              selectedFuel={selectedFuel}
+              setSelectedTyre={setSelectedTyre}
+              setSelectedFuel={setSelectedFuel}
+              simulator={practiceSimulator}
             />
           )}
 
-          {/* FP2 Section */}
-          {currentPhase === "fp2" && (
-            <>
-              {fp1Session && <PracticeResultsCard session={fp1Session} simulator={practiceSimulator} />}
-              <PracticeSessionCard
-                title="Treino Livre 2"
-                subtitle="Segunda sessão - Ajustes e coleta de dados"
-                session={fp2Session}
-                onSimulate={() => simulatePractice("FP2")}
-                isSimulating={isSimulating}
-                color="green"
-              />
-            </>
+          {/* FP2 */}
+          {weekendState.currentPhase === "fp2" && (
+            <PracticeSessionView
+              title="Treino Livre 2 - Sexta-feira"
+              subtitle="60 minutos de refinamento de setup"
+              session={weekendState.fp2}
+              onStart={startFP2}
+              onSimulate={simulateFP2Auto}
+              onComplete={completeFP2}
+              onRunLaps={runPracticeLaps}
+              selectedTyre={selectedTyre}
+              selectedFuel={selectedFuel}
+              setSelectedTyre={setSelectedTyre}
+              setSelectedFuel={setSelectedFuel}
+              simulator={practiceSimulator}
+            />
           )}
 
-          {/* FP3 Section */}
-          {currentPhase === "fp3" && (
-            <>
-              {fp2Session && <PracticeResultsCard session={fp2Session} simulator={practiceSimulator} />}
-              <PracticeSessionCard
-                title="Treino Livre 3"
-                subtitle="Sessão final antes da classificação - Setup definitivo"
-                session={fp3Session}
-                onSimulate={() => simulatePractice("FP3")}
-                isSimulating={isSimulating}
-                color="purple"
-              />
-            </>
+          {/* QUALIFYING */}
+          {weekendState.currentPhase === "qualifying" && (
+            <QualifyingView
+              weekendState={weekendState}
+              onStartQ1={startQ1}
+              onSimulateQ1={simulateQ1Auto}
+              onStartQ2={startQ2}
+              onSimulateQ2={simulateQ2Auto}
+              onStartQ3={startQ3}
+              onSimulateQ3={simulateQ3Auto}
+              simulator={qualifyingSimulator}
+            />
           )}
 
-          {/* Qualifying Section */}
-          {currentPhase === "qualifying" && (
-            <>
-              {fp3Session && <PracticeResultsCard session={fp3Session} simulator={practiceSimulator} />}
-              <Card>
-                <CardHeader className="bg-gradient-to-r from-yellow-500 to-amber-600 text-white">
-                  <CardTitle className="flex items-center gap-3">
-                    <Timer className="h-6 w-6" />
-                    Classificação (Q1 → Q2 → Q3)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  {!qualifying ? (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground mb-6">
-                        Sistema de três sessões eliminatórias para definir o grid de largada
-                      </p>
-                      <Button
-                        onClick={simulateQualifying}
-                        disabled={isSimulating}
-                        size="lg"
-                        className="bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700"
-                      >
-                        <Play className="h-5 w-5 mr-2" />
-                        Iniciar Classificação
-                      </Button>
-                    </div>
-                  ) : (
-                    <QualifyingResultsCard qualifying={qualifying} simulator={qualifyingSimulator} />
-                  )}
-                </CardContent>
-              </Card>
-            </>
+          {/* RACE 1 */}
+          {weekendState.currentPhase === "race1" && (
+            <RaceView
+              title="Corrida 1 - Sábado (30min + 1 volta)"
+              subtitle="Grid invertido dos 12 primeiros"
+              session={weekendState.race1Session}
+              results={weekendState.race1Results}
+              onStart={startRace1}
+              onSimulate={simulateRace1}
+              raceSpeed={raceSpeed}
+              setRaceSpeed={setRaceSpeed}
+              simulator={raceSimulator}
+            />
           )}
 
-          {/* Race 1 Section */}
-          {currentPhase === "race1" && qualifying && (
-            <Card>
-              <CardHeader className="bg-gradient-to-r from-emerald-500 to-green-600 text-white">
-                <CardTitle className="flex items-center gap-3">
-                  <Flag className="h-6 w-6" />
-                  Corrida 1 - Grid Oficial
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6">
-                {!race1Results ? (
-                  <div className="text-center py-8">
-                    <Button
-                      onClick={simulateRace1}
-                      disabled={isSimulating}
-                      size="lg"
-                      className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700"
-                    >
-                      <Play className="h-5 w-5 mr-2" />
-                      Iniciar Corrida 1
-                    </Button>
-                  </div>
-                ) : (
-                  <RaceResultsCard results={race1Results} raceNumber={1} />
-                )}
-              </CardContent>
-            </Card>
+          {/* RACE 2 */}
+          {weekendState.currentPhase === "race2" && (
+            <RaceView
+              title="Corrida 2 - Domingo (50min + 1 volta)"
+              subtitle="Grid original da classificação"
+              session={weekendState.race2Session}
+              results={weekendState.race2Results}
+              onStart={startRace2}
+              onSimulate={simulateRace2}
+              raceSpeed={raceSpeed}
+              setRaceSpeed={setRaceSpeed}
+              simulator={raceSimulator}
+            />
           )}
 
-          {/* Race 2 Section */}
-          {currentPhase === "race2" && race1Results && (
-            <>
-              <RaceResultsCard results={race1Results} raceNumber={1} />
-              <Card>
-                <CardHeader className="bg-gradient-to-r from-orange-500 to-red-600 text-white">
-                  <CardTitle className="flex items-center gap-3">
-                    <Trophy className="h-6 w-6" />
-                    Corrida 2 - Grid Invertido (Top 10)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  {!race2Results ? (
-                    <div className="text-center py-8">
-                      <Button
-                        onClick={simulateRace2}
-                        disabled={isSimulating}
-                        size="lg"
-                        className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
-                      >
-                        <Play className="h-5 w-5 mr-2" />
-                        Iniciar Corrida 2
-                      </Button>
-                    </div>
-                  ) : (
-                    <RaceResultsCard results={race2Results} raceNumber={2} />
-                  )}
-                </CardContent>
-              </Card>
-            </>
-          )}
-
-          {/* Complete Section */}
-          {currentPhase === "complete" && race1Results && race2Results && (
-            <Card className="border-4 border-emerald-500">
-              <CardHeader className="bg-gradient-to-r from-emerald-500 to-green-600 text-white">
-                <CardTitle className="text-center text-2xl">
-                  🏁 FIM DE SEMANA COMPLETO 🏁
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-8">
-                <div className="text-center mb-8">
-                  <h2 className="text-3xl font-bold mb-2">GP {race1.location} Finalizado!</h2>
-                  <p className="text-lg text-muted-foreground">
-                    FP1 → FP2 → FP3 → Classificação → Corrida 1 → Corrida 2
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <RaceResultsCard results={race1Results} raceNumber={1} compact />
-                  <RaceResultsCard results={race2Results} raceNumber={2} compact />
-                </div>
-
-                <div className="text-center mt-8">
-                  <Button variant="outline" size="lg" onClick={onBack}>
-                    <ArrowLeft className="h-5 w-5 mr-2" />
-                    Voltar ao Menu
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+          {/* COMPLETE */}
+          {weekendState.currentPhase === "complete" && (
+            <WeekendCompleteView
+              race1Results={weekendState.race1Results!}
+              race2Results={weekendState.race2Results!}
+              qualifyingGrid={weekendState.qualifyingGrid}
+              onBack={onBack}
+            />
           )}
         </div>
       </div>
@@ -434,55 +380,124 @@ export function CompleteRaceWeekend({
   )
 }
 
-function PracticeSessionCard({
+// ========== PRACTICE SESSION VIEW ==========
+function PracticeSessionView({
   title,
   subtitle,
   session,
+  onStart,
   onSimulate,
-  isSimulating,
-  color,
-}: {
-  title: string
-  subtitle: string
-  session: PracticeSession | null
-  onSimulate: () => void
-  isSimulating: boolean
-  color: "blue" | "green" | "purple"
-}) {
-  const colorClasses = {
-    blue: "from-blue-500 to-blue-600",
-    green: "from-green-500 to-green-600",
-    purple: "from-purple-500 to-purple-600",
-  }
-
+  onComplete,
+  onRunLaps,
+  selectedTyre,
+  selectedFuel,
+  setSelectedTyre,
+  setSelectedFuel,
+  simulator,
+}: any) {
   return (
     <Card>
-      <CardHeader className={`bg-gradient-to-r ${colorClasses[color]} text-white`}>
+      <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
         <CardTitle className="flex items-center gap-3">
           <Clock className="h-6 w-6" />
-          {title}
+          <div>
+            <div className="text-xl font-bold">{title}</div>
+            <div className="text-sm opacity-90">{subtitle}</div>
+          </div>
         </CardTitle>
-        <p className="text-white/90 text-sm">{subtitle}</p>
       </CardHeader>
       <CardContent className="pt-6">
         {!session ? (
           <div className="text-center py-8">
-            <Button
-              onClick={onSimulate}
-              disabled={isSimulating}
-              size="lg"
-              className={`bg-gradient-to-r ${colorClasses[color]}`}
-            >
+            <Button onClick={onStart} size="lg" className="bg-blue-600 hover:bg-blue-700">
               <Play className="h-5 w-5 mr-2" />
-              Iniciar {title}
+              Iniciar Sessão
             </Button>
           </div>
         ) : (
-          <div className="text-center py-4">
-            <Badge className="bg-emerald-500 text-white px-4 py-2">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Sessão Concluída
-            </Badge>
+          <div className="space-y-6">
+            {/* Controls */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-lg">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Tipo de Pneu</label>
+                <Select value={selectedTyre} onValueChange={(v: TyreType) => setSelectedTyre(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="soft">🔴 Macio (mais grip)</SelectItem>
+                    <SelectItem value="medium">🟡 Médio (balanceado)</SelectItem>
+                    <SelectItem value="hard">⚪ Duro (mais durável)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Carga de Combustível</label>
+                <Select value={selectedFuel} onValueChange={(v: FuelLoad) => setSelectedFuel(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">⚡ Leve (10 voltas)</SelectItem>
+                    <SelectItem value="medium">➡️ Médio (20 voltas)</SelectItem>
+                    <SelectItem value="heavy">🔋 Pesado (30 voltas)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-end gap-2">
+                <Button onClick={onRunLaps} className="flex-1">
+                  <Zap className="h-4 w-4 mr-2" />
+                  Dar 5 Voltas
+                </Button>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <Button onClick={onSimulate} variant="outline">
+                <SkipForward className="h-4 w-4 mr-2" />
+                Pular Treino
+              </Button>
+              <Button onClick={onComplete} className="ml-auto">
+                <CircleCheck className="h-4 w-4 mr-2" />
+                Encerrar Sessão
+              </Button>
+            </div>
+
+            {/* Results */}
+            {session.results.some((r: any) => r.lapsCompleted > 0) && (
+              <div className="space-y-2">
+                <h3 className="font-bold text-lg">Classificação Atual</h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {session.results.slice(0, 10).map((result: any, idx: number) => {
+                    const driver = DRIVERS.find(d => d.id === result.driverId)!
+                    const team = TEAMS.find(t => t.id === driver.teamId)!
+
+                    return (
+                      <div key={result.driverId} className="flex items-center gap-4 p-3 bg-white border rounded-lg">
+                        <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold">
+                          {result.position}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-bold">{driver.name}</div>
+                          <div className="text-sm text-slate-600">{team.name} • {result.lapsCompleted} voltas</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-mono font-bold">
+                            {simulator.formatTime(result.bestLap)}
+                          </div>
+                          <div className="text-sm text-slate-500">
+                            {simulator.formatGap(result.gap)}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
@@ -490,241 +505,302 @@ function PracticeSessionCard({
   )
 }
 
-function PracticeResultsCard({
-  session,
-  simulator,
-}: {
-  session: PracticeSession
-  simulator: PracticeSimulator
-}) {
+// ========== QUALIFYING VIEW ==========
+function QualifyingView({ weekendState, onStartQ1, onSimulateQ1, onStartQ2, onSimulateQ2, onStartQ3, onSimulateQ3, simulator }: any) {
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            Resultados {session.type}
-          </span>
-          <Badge variant="outline">{session.totalLaps} voltas totais</Badge>
+    <div className="space-y-6">
+      {/* Q1 */}
+      <Card>
+        <CardHeader className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
+          <CardTitle>Q1 - Primeira Eliminação (15 minutos)</CardTitle>
+          <p className="text-sm opacity-90">20 pilotos • Top 16 avançam</p>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {!weekendState.q1 ? (
+            <Button onClick={onStartQ1} size="lg">
+              <Play className="h-5 w-5 mr-2" />
+              Iniciar Q1
+            </Button>
+          ) : !weekendState.q1.qualified.length ? (
+            <Button onClick={onSimulateQ1} size="lg">
+              <SkipForward className="h-5 w-5 mr-2" />
+              Simular Q1
+            </Button>
+          ) : (
+            <SessionResults session={weekendState.q1} simulator={simulator} />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Q2 */}
+      {weekendState.currentSubPhase && ["q2", "q3"].includes(weekendState.currentSubPhase) && (
+        <Card>
+          <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+            <CardTitle>Q2 - Segunda Eliminação (12 minutos)</CardTitle>
+            <p className="text-sm opacity-90">16 pilotos • Top 10 avançam</p>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {!weekendState.q2 ? (
+              <Button onClick={onStartQ2} size="lg">
+                <Play className="h-5 w-5 mr-2" />
+                Iniciar Q2
+              </Button>
+            ) : !weekendState.q2.qualified.length ? (
+              <Button onClick={onSimulateQ2} size="lg">
+                <SkipForward className="h-5 w-5 mr-2" />
+                Simular Q2
+              </Button>
+            ) : (
+              <SessionResults session={weekendState.q2} simulator={simulator} />
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Q3 */}
+      {weekendState.currentSubPhase === "q3" && (
+        <Card>
+          <CardHeader className="bg-gradient-to-r from-red-500 to-red-600 text-white">
+            <CardTitle>Q3 - Luta pela Pole (10 minutos)</CardTitle>
+            <p className="text-sm opacity-90">10 pilotos • Define grid de largada</p>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {!weekendState.q3 ? (
+              <Button onClick={onStartQ3} size="lg">
+                <Play className="h-5 w-5 mr-2" />
+                Iniciar Q3
+              </Button>
+            ) : !weekendState.qualifyingGrid.length ? (
+              <Button onClick={onSimulateQ3} size="lg">
+                <SkipForward className="h-5 w-5 mr-2" />
+                Simular Q3
+              </Button>
+            ) : (
+              <SessionResults session={weekendState.q3} simulator={simulator} isPole />
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+function SessionResults({ session, simulator, isPole = false }: any) {
+  return (
+    <div className="space-y-2">
+      {session.results.slice(0, 10).map((result: any, idx: number) => {
+        const driver = DRIVERS.find(d => d.id === result.driverId)!
+        const team = TEAMS.find(t => t.id === driver.teamId)!
+
+        return (
+          <div key={result.driverId} className={`flex items-center gap-4 p-3 rounded-lg border ${
+            isPole && idx === 0 ? "bg-yellow-50 border-yellow-400" : "bg-white border-slate-200"
+          }`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+              isPole && idx === 0 ? "bg-yellow-400 text-black" : "bg-slate-200"
+            }`}>
+              {result.position}
+            </div>
+            <div className="flex-1">
+              <div className="font-bold">{driver.name}</div>
+              <div className="text-sm text-slate-600">{team.name}</div>
+            </div>
+            <div className="text-right">
+              <div className="font-mono font-bold">{simulator.formatTime(result.bestLap)}</div>
+              <div className="text-sm text-slate-500">{simulator.formatGap(result.gap)}</div>
+            </div>
+            {isPole && idx === 0 && (
+              <Badge className="bg-yellow-400 text-black">
+                <Trophy className="h-3 w-3 mr-1" />
+                POLE
+              </Badge>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ========== RACE VIEW ==========
+function RaceView({ title, subtitle, session, results, onStart, onSimulate, raceSpeed, setRaceSpeed, simulator }: any) {
+  return (
+    <Card>
+      <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+        <CardTitle>
+          <div className="text-xl font-bold">{title}</div>
+          <div className="text-sm opacity-90">{subtitle}</div>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-2 max-h-64 overflow-y-auto">
-          {session.results.slice(0, 10).map((result, index) => {
-            const driver = DRIVERS.find((d) => d.id === result.driverId)!
-            const team = TEAMS.find((t) => t.id === driver.teamId)!
-
-            return (
-              <div
-                key={result.driverId}
-                className={`flex items-center gap-4 p-3 rounded-lg border transition-all ${
-                  index === 0
-                    ? "border-yellow-400 bg-yellow-50 shadow-md"
-                    : "border-slate-200 bg-white hover:bg-slate-50"
-                }`}
-              >
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                    index === 0
-                      ? "bg-yellow-400 text-black"
-                      : "bg-slate-200 text-slate-700"
-                  }`}
-                >
-                  {result.position}
-                </div>
-
-                <div className="flex items-center gap-3 flex-1">
-                  <div className="relative w-8 h-8 rounded overflow-hidden bg-white border">
-                    <Image
-                      src={team.logo || "/placeholder.svg"}
-                      alt={team.name}
-                      fill
-                      className="object-contain p-1"
-                    />
-                  </div>
-                  <div>
-                    <div className="font-bold">{driver.name}</div>
-                    <div className="text-xs text-muted-foreground">{team.name}</div>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="font-mono font-bold text-primary">
-                    {simulator.formatTime(result.fastestLap)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {simulator.formatGap(result.gap)}
-                  </div>
-                </div>
+      <CardContent className="pt-6">
+        {!session ? (
+          <Button onClick={onStart} size="lg">
+            <Flag className="h-5 w-5 mr-2" />
+            Iniciar Corrida
+          </Button>
+        ) : !session.isActive && !results ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Velocidade da Simulação</label>
+                <Select value={raceSpeed.toString()} onValueChange={(v) => setRaceSpeed(Number(v) as any)}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1x</SelectItem>
+                    <SelectItem value="2">2x</SelectItem>
+                    <SelectItem value="4">4x</SelectItem>
+                    <SelectItem value="8">8x</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )
-          })}
-        </div>
+              <Button onClick={onSimulate} size="lg" className="ml-auto">
+                <Play className="h-5 w-5 mr-2" />
+                Iniciar Corrida
+              </Button>
+            </div>
+          </div>
+        ) : session.isActive ? (
+          <div className="space-y-6">
+            <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-lg">
+              <div>
+                <div className="text-sm text-slate-600">Volta</div>
+                <div className="text-2xl font-bold">{session.currentLap} / {session.totalLaps}</div>
+              </div>
+              <div>
+                <div className="text-sm text-slate-600">Tempo Restante</div>
+                <div className="text-2xl font-bold">{session.timeRemaining}min</div>
+              </div>
+              <div>
+                <div className="text-sm text-slate-600">Velocidade</div>
+                <div className="text-2xl font-bold">{raceSpeed}x</div>
+              </div>
+            </div>
+
+            <Progress value={(session.currentLap / session.totalLaps) * 100} />
+
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {session.positions.slice(0, 15).map((pos: any) => {
+                const driver = DRIVERS.find(d => d.id === pos.driverId)!
+                const team = TEAMS.find(t => t.id === driver.teamId)!
+
+                return (
+                  <div key={pos.driverId} className="flex items-center gap-4 p-3 bg-white border rounded-lg">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold">
+                      {pos.position}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold">{driver.name}</div>
+                      <div className="text-sm text-slate-600">{team.name}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold">{pos.gap}</div>
+                      <div className="text-xs text-slate-500">Pneu: {pos.tyreLaps} voltas</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ) : results ? (
+          <RaceResults results={results} />
+        ) : null}
       </CardContent>
     </Card>
   )
 }
 
-function QualifyingResultsCard({
-  qualifying,
-  simulator,
-}: {
-  qualifying: QualifyingWeekend
-  simulator: QualifyingSimulator
-}) {
+function RaceResults({ results }: any) {
   return (
-    <div className="space-y-4">
-      <div className="bg-gradient-to-r from-yellow-400 to-amber-500 p-6 rounded-lg text-black">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Trophy className="h-10 w-10" />
-            <div>
-              <div className="text-sm font-medium opacity-80">POLE POSITION</div>
-              <div className="text-2xl font-bold">
-                {DRIVERS.find((d) => d.id === qualifying.polePosition?.driverId)?.name}
-              </div>
-              <div className="text-lg font-mono">
-                {simulator.formatTime(qualifying.polePosition?.lapTime || 0)}
-              </div>
+    <div className="space-y-2">
+      {results.slice(0, 10).map((result: any, idx: number) => {
+        const driver = DRIVERS.find(d => d.id === result.driverId)!
+        const team = TEAMS.find(t => t.id === driver.teamId)!
+
+        return (
+          <div key={result.driverId} className={`flex items-center gap-4 p-3 rounded-lg border ${
+            idx === 0 ? "bg-yellow-50 border-yellow-400" :
+            idx < 3 ? "bg-slate-50 border-slate-300" :
+            "bg-white border-slate-200"
+          }`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+              idx === 0 ? "bg-yellow-400 text-black" :
+              idx < 3 ? "bg-slate-400 text-white" :
+              "bg-slate-200"
+            }`}>
+              {result.position}
+            </div>
+            <div className="flex-1">
+              <div className="font-bold">{driver.name}</div>
+              <div className="text-sm text-slate-600">{team.name} • {result.pitStops} pit stops</div>
+            </div>
+            <div className="text-right">
+              {result.dnf ? (
+                <Badge variant="destructive">DNF</Badge>
+              ) : (
+                <>
+                  <div className="font-bold">{result.points} pts</div>
+                  {result.fastestLap && (
+                    <Badge variant="secondary" className="text-xs mt-1">
+                      <Zap className="h-3 w-3 mr-1" />
+                      V.Rápida
+                    </Badge>
+                  )}
+                </>
+              )}
             </div>
           </div>
-        </div>
-      </div>
-
-      <div className="space-y-2 max-h-80 overflow-y-auto">
-        {qualifying.finalGrid.slice(0, 10).map((result, index) => {
-          const driver = DRIVERS.find((d) => d.id === result.driverId)!
-          const team = TEAMS.find((t) => t.id === driver.teamId)!
-
-          return (
-            <div
-              key={result.driverId}
-              className={`flex items-center gap-4 p-3 rounded-lg border ${
-                index === 0
-                  ? "border-yellow-400 bg-yellow-50"
-                  : "border-slate-200 bg-white"
-              }`}
-            >
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                  index === 0 ? "bg-yellow-400 text-black" : "bg-slate-200"
-                }`}
-              >
-                {result.position}
-              </div>
-
-              <div className="flex items-center gap-3 flex-1">
-                <div className="relative w-8 h-8 rounded overflow-hidden bg-white border">
-                  <Image
-                    src={team.logo || "/placeholder.svg"}
-                    alt={team.name}
-                    fill
-                    className="object-contain p-1"
-                  />
-                </div>
-                <div>
-                  <div className="font-bold">{driver.name}</div>
-                  <div className="text-xs text-muted-foreground">{team.name}</div>
-                </div>
-              </div>
-
-              <div className="text-right">
-                <div className="font-mono font-bold">
-                  {simulator.formatTime(result.lapTime)}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {simulator.formatGap(result.gap)}
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+        )
+      })}
     </div>
   )
 }
 
-function RaceResultsCard({
-  results,
-  raceNumber,
-  compact = false,
-}: {
-  results: RaceSimulationData
-  raceNumber: number
-  compact?: boolean
-}) {
-  const displayResults = compact ? results.results.slice(0, 5) : results.results.slice(0, 10)
+// ========== WEEKEND COMPLETE ==========
+function WeekendCompleteView({ race1Results, race2Results, qualifyingGrid, onBack }: any) {
+  const poleDriver = DRIVERS.find(d => d.id === qualifyingGrid[0]?.driverId)
+  const race1Winner = DRIVERS.find(d => d.id === race1Results[0]?.driverId)
+  const race2Winner = DRIVERS.find(d => d.id === race2Results[0]?.driverId)
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Trophy className="h-5 w-5" />
-          Corrida {raceNumber} - Resultados
-        </CardTitle>
+      <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white text-center">
+        <CardTitle className="text-3xl">🏁 FIM DE SEMANA COMPLETO 🏁</CardTitle>
+        <p className="text-lg opacity-90">FP1 → FP2 → Classificação → Corrida 1 → Corrida 2</p>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          {displayResults.map((result, index) => {
-            const driver = DRIVERS.find((d) => d.id === result.driverId)!
-            const team = TEAMS.find((t) => t.id === driver.teamId)!
+      <CardContent className="pt-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="bg-gradient-to-br from-yellow-400 to-yellow-500 text-black">
+            <CardContent className="pt-6 text-center">
+              <Trophy className="h-12 w-12 mx-auto mb-3" />
+              <div className="text-sm font-medium opacity-80">POLE POSITION</div>
+              <div className="text-xl font-bold">{poleDriver?.name}</div>
+            </CardContent>
+          </Card>
 
-            return (
-              <div
-                key={result.driverId}
-                className={`flex items-center gap-4 p-3 rounded-lg border ${
-                  index === 0
-                    ? "border-yellow-400 bg-yellow-50"
-                    : index < 3
-                    ? "border-slate-300 bg-slate-50"
-                    : "border-slate-200 bg-white"
-                }`}
-              >
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                    index === 0
-                      ? "bg-yellow-400 text-black"
-                      : index < 3
-                      ? "bg-slate-400 text-white"
-                      : "bg-slate-200"
-                  }`}
-                >
-                  {result.position}
-                </div>
+          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
+            <CardContent className="pt-6 text-center">
+              <Flag className="h-12 w-12 mx-auto mb-3" />
+              <div className="text-sm font-medium opacity-90">VENCEDOR CORRIDA 1</div>
+              <div className="text-xl font-bold">{race1Winner?.name}</div>
+            </CardContent>
+          </Card>
 
-                <div className="flex items-center gap-3 flex-1">
-                  <div className="relative w-8 h-8 rounded overflow-hidden bg-white border">
-                    <Image
-                      src={team.logo || "/placeholder.svg"}
-                      alt={team.name}
-                      fill
-                      className="object-contain p-1"
-                    />
-                  </div>
-                  <div>
-                    <div className="font-bold">{driver.name}</div>
-                    <div className="text-xs text-muted-foreground">{team.name}</div>
-                  </div>
-                </div>
+          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+            <CardContent className="pt-6 text-center">
+              <Trophy className="h-12 w-12 mx-auto mb-3" />
+              <div className="text-sm font-medium opacity-90">VENCEDOR CORRIDA 2</div>
+              <div className="text-xl font-bold">{race2Winner?.name}</div>
+            </CardContent>
+          </Card>
+        </div>
 
-                <div className="text-right">
-                  {result.dnf ? (
-                    <Badge variant="destructive">DNF</Badge>
-                  ) : (
-                    <>
-                      <div className="font-bold text-primary">{result.points} pts</div>
-                      {result.fastestLap && (
-                        <Badge variant="secondary" className="text-xs">
-                          <Zap className="h-3 w-3 mr-1" />
-                          V.Rápida
-                        </Badge>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+        <div className="text-center">
+          <Button onClick={onBack} size="lg">
+            <ArrowLeft className="h-5 w-5 mr-2" />
+            Voltar ao Menu Principal
+          </Button>
         </div>
       </CardContent>
     </Card>
